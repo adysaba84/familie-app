@@ -30,6 +30,45 @@ function cardLimit(model, accountId) {
   return rows.length ? Number(rows[rows.length - 1].value) : null;
 }
 
+// ---- Excel snapshots -------------------------------------------------------------------------------------------
+// Totals copied from the old spreadsheet for dates BEFORE the detailed records exist (deposits entered one by one only
+// start in mid-2026, so the 31 dec 2025 total comes from here). A group's snapshots count only while asOf is earlier
+// than the first detailed record of that group, so they can never be added on top of real records.
+const SNAP_LAYER = {
+  conturi: ['disponibil', 'conturi'], depozite: ['disponibil', 'depozite'], seif: ['disponibil', 'seif'],
+  bursa: ['bursa', 'bursa'], aur: ['bursa', 'aur'],
+};
+
+export function detailStart(model, group) {
+  const dates = [];
+  const take = (rows, f) => { for (const r of rows || []) if (live(r)) { const d = f(r); if (d) dates.push(d); } };
+  const kindOf = new Map(model.accounts.map((a) => [a.id, a.kind]));
+  const itemKind = new Map((model.physical_items || []).map((i) => [i.id, i.kind]));
+  if (group === 'conturi') take(model.balances, (r) => (['current', 'wallet', 'voucher'].includes(kindOf.get(r.account_id)) ? r.date : null));
+  else if (group === 'depozite') take(model.deposits, (r) => r.start_date);
+  else if (group === 'seif' || group === 'aur') {
+    const k = group === 'seif' ? 'cash' : 'gold';
+    take(model.physical_items, (r) => (r.kind === k ? r.purchase_date : null));
+    take(model.physical_values, (r) => (itemKind.get(r.item_id) === k ? r.date : null));
+  } else if (group === 'bursa') { take(model.broker_flows, (r) => r.date); take(model.broker_values, (r) => r.date); }
+  return dates.sort()[0] || '9999-12-31';
+}
+
+// Latest snapshot per (group, label, currency) on or before asOf. `all` keeps the ones a detailed group already covers.
+export function snapshotRows(model, asOf, { all = false } = {}) {
+  const best = new Map();
+  for (const r of (model.snapshots || []).filter(live)) {
+    if (!SNAP_LAYER[r.group] || r.date > asOf) continue;
+    const k = `${r.group}|${r.label}|${r.currency}`, cur = best.get(k);
+    if (!cur || r.date > cur.date || (r.date === cur.date && (r._row || 0) > (cur._row || 0))) best.set(k, r);
+  }
+  const starts = {};
+  return [...best.values()].map((r) => {
+    if (!(r.group in starts)) starts[r.group] = detailStart(model, r.group);
+    return { ...r, used: asOf < starts[r.group] };
+  }).filter((r) => all || r.used);
+}
+
 export function situation(model, asOf) {
   const rates = model.rates;
   const disponibil = emptyLayer(LAYERS.disponibil);
@@ -75,6 +114,13 @@ export function situation(model, asOf) {
   }
 
   bump(bursa, 'bursa', brokerSummary(model, asOf).valueRon);
+
+  for (const s of snapshotRows(model, asOf)) {
+    const [which, key] = SNAP_LAYER[s.group];
+    const layer = which === 'disponibil' ? disponibil : bursa;
+    bump(layer, key, toRon(s.amount_minor, s.currency, rates, asOf));
+    if (which === 'disponibil') addNative(s.currency, s.amount_minor);
+  }
 
   return { asOf, disponibil: { ...disponibil, native }, bursa, indisponibil, wealth: disponibil.total + bursa.total + indisponibil.total };
 }

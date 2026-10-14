@@ -13,6 +13,8 @@ export const TABS = {
   balances: withCommon(['id', 'account_id', 'date', 'balance_minor', 'rate_bp']),
   // the only tab Iza herself may write (her wallets); same shape as `balances`, merged with it when the file is loaded
   wallet_balances: withCommon(['id', 'account_id', 'date', 'balance_minor', 'rate_bp']),
+  // Excel totals for dates before the detailed records exist (e.g. all deposits at 31 dec): group = conturi | depozite | seif | aur | bursa
+  snapshots: withCommon(['id', 'date', 'group', 'label', 'currency', 'amount_minor', 'note']),
   rates: ['date', 'EUR', 'USD', 'XAU', 'source'],
   // key/value settings (private plan parameters live here, never in the public code); latest non-void row per key wins
   settings: withCommon(['key', 'value']),

@@ -182,3 +182,13 @@ label.f{display:flex;flex-direction:column;gap:6px}
   .hero,.rbar,.rbar>div,.box{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .box,.rung,.hero{break-inside:avoid}
 }
+
+/* verification page: label + three date columns */
+.vhead{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr));gap:6px}
+.vhead span:not(:first-child){text-align:right}
+.vrow{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr));gap:6px;padding:7px 14px;border-bottom:1px solid var(--line2);font-size:12px;align-items:start}
+.vrow:last-child{border-bottom:0}
+.vrow .vl{display:flex;flex-direction:column;overflow-wrap:anywhere}
+.vrow small{color:var(--muted);font-size:10px}
+.vrow .vc{text-align:right;font-size:11px;overflow-wrap:anywhere}
+.vrow.dim{color:var(--muted)}

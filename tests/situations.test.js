@@ -1,5 +1,5 @@
 import { test, eq, ok } from './harness.js';
-import { situation, combine, comparisonDates, historyStart, LAYERS } from '../js/situations.js';
+import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS } from '../js/situations.js';
 
 // Invented family (round numbers): EUR = 5 RON, USD = 4 RON.
 const rates = [{ date: '2026-01-01', EUR: 50000, USD: 40000 }];
@@ -90,3 +90,18 @@ test('historyStart: the earliest balance / broker / physical date', () => {
   eq(historyStart({ balances: [], broker_flows: [], broker_values: [], physical_values: [] }), null);
 });
 test('LAYERS lists every line the screen shows', () => ok(LAYERS.disponibil.length === 6 && LAYERS.bursa.length === 2 && LAYERS.indisponibil.length === 3));
+
+test('snapshots: Excel totals count only before the group has detailed records, never on top of them', () => {
+  const snap = (group, label, currency, amount_minor, date = '2025-12-31') => ({ group, label, currency, amount_minor, date });
+  const m = { ...model, snapshots: [snap('depozite', 'Depozite lei', 'RON', 777700), snap('depozite', 'Depozite euro', 'EUR', 10000),
+    snap('bursa', 'Tradeville', 'RON', 123400, '2025-12-31'), snap('bursa', 'Tradeville', 'RON', 150000, '2026-03-01'), snap('seif', 'Seif euro', 'EUR', 2000)] };
+  // deposits start 2026-01-01 in the invented model: before that day the snapshots count, from that day they do not
+  const early = situation(m, '2025-12-31');
+  eq(line(early.disponibil, 'depozite'), 777700 + 50000); // 100 euro = 500 lei
+  eq(early.disponibil.native.EUR, 10000 + 2000); // snapshot deposits euro + safe euro
+  eq(line(early.bursa, 'bursa'), 123400);
+  eq(line(situation(m, '2026-03-15').bursa, 'bursa'), 150000); // the latest snapshot on or before the date
+  eq(line(situation(m, '2026-10-14').disponibil, 'depozite'), 100000 + 40000); // real deposits only
+  eq(snapshotRows(m, '2026-10-14').some((r) => r.group === 'depozite'), false);
+  ok(snapshotRows(m, '2026-10-14', { all: true }).some((r) => r.group === 'depozite' && !r.used), 'all=true keeps unused ones, flagged');
+});
