@@ -11,10 +11,13 @@ export const SEED = {
     a('current', 'BT', 'Ady'), a('current', 'BT', 'Carmen'), a('current', 'Salt', 'Carmen'), a('current', 'Revolut', 'Carmen'), a('current', 'Revolut', 'Ady'),
     a('voucher', 'Edenred', 'Ady', 'RON', 'Tichete · Ady'), a('voucher', 'Edenred', 'Carmen', 'RON', 'Tichete · Carmen'),
     a('savings', 'Economii', 'Ady', 'RON', 'Economii · Ady'), a('savings', 'BT', 'Carmen', 'RON', 'BT economii · Carmen'),
+    a('wallet', 'Portofel', 'Ady', 'RON', 'Portofel · Ady · RON'), a('wallet', 'Portofel', 'Ady', 'EUR', 'Portofel · Ady · EUR'),
+    a('wallet', 'Portofel', 'Carmen', 'RON', 'Portofel · Carmen · RON'), a('wallet', 'Portofel', 'Carmen', 'EUR', 'Portofel · Carmen · EUR'),
     a('safe', 'Seif', 'Ady', 'RON', 'Seif'),
   ],
   iza: [
     a('broker', 'Tradeville', 'Iza'), a('deposit_bank', 'BT', 'Iza'),
     a('savings', 'KID', 'Iza', 'RON', 'KID cont'),
+    a('wallet', 'Portofel', 'Iza', 'RON', 'Portofel · Iza · RON'), a('wallet', 'Portofel', 'Iza', 'EUR', 'Portofel · Iza · EUR'),
   ],
 };

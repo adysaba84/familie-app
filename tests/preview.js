@@ -13,7 +13,7 @@ const stamp = (r) => ({ id: 'id' + ++seq, created_by: 'demo', created_at: '2026-
 
 SEED.parents.forEach((a) => model.accounts.push(stamp({ ...a })));
 const acc = (inst, owner) => model.accounts.find((a) => a.institution === inst && a.owner === owner && a.kind === 'broker');
-const xtb = acc('XTB', 'Ady'), tv = acc('Tradeville', 'Ady'), rev = acc('Revolut', 'Carmen');
+const xtb = acc('XTB', 'Ady'), tv = acc('Tradeville', 'Ady'), rev = acc('Revolut', 'Ady');
 
 const params = new URLSearchParams(location.search);
 if (params.get('empty') !== '1') {
@@ -42,6 +42,7 @@ if (params.get('empty') !== '1') {
   model.physical_values.push(stamp({ item_id: model.physical_items[0].id, date: '2026-10-01', value_minor: 810000 }));
   const cur = model.accounts.find((a) => a.kind === 'current' && a.owner === 'Carmen' && a.institution === 'BT');
   model.balances.push(stamp({ account_id: cur.id, date: '2026-08-20', balance_minor: 2163800 }));
+  ['Ady', 'Carmen'].forEach((o) => ['RON', 'EUR'].forEach((c) => { const w = model.accounts.find((a) => a.kind === 'wallet' && a.owner === o && a.currency_default === c); if (w) model.balances.push(stamp({ account_id: w.id, date: '2026-10-10', balance_minor: c === 'RON' ? 35000 : 12000 })); }));
   const sav = model.accounts.find((a) => a.kind === 'savings' && a.owner === 'Carmen');
   [['2026-05-10', 1210000, 300], ['2026-07-10', 1310000, 300], ['2026-09-02', 1330000, 285], ['2026-10-02', 1398768, 285]].forEach(([d, b, r]) => model.balances.push(stamp({ account_id: sav.id, date: d, balance_minor: b, rate_bp: r })));
   model.physical_values.push(stamp({ item_id: model.physical_items[0].id, date: '2026-04-01', value_minor: 750000 }), stamp({ item_id: model.physical_items[0].id, date: '2026-07-01', value_minor: 790000 }));

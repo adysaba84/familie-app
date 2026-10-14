@@ -27,6 +27,13 @@ export async function conturiView(app) {
       const model = s === space ? m : await app.model(s);
       for (const a of model.accounts.filter((x) => !x.void && x.kind === 'savings' && x.status !== 'closed')) savings.push({ space: s, account: a, model });
     }
+    // wallets: this space + other spaces (Iza's wallet is shown here but not counted in this total)
+    const wallets = [];
+    for (const sp of app.spaces) {
+      const model = sp === space ? m : await app.model(sp);
+      for (const a of model.accounts.filter((x) => !x.void && x.kind === 'wallet' && x.status !== 'closed')) wallets.push({ space: sp, account: a, model });
+    }
+    const walletOwners = [...new Set(wallets.map((w) => w.account.owner))];
     if (!savings.find((x) => `${x.space}|${x.account.id}` === tab)) {
       const first = savings.find((x) => accountBalance(x.model, x.account.id, today).balance != null) || savings[0];
       tab = first ? `${first.space}|${first.account.id}` : null;
@@ -98,6 +105,19 @@ export async function conturiView(app) {
             return h('div', { style: `display:flex;flex-direction:column;gap:2px;padding:9px 14px;${i % 2 === 0 ? 'border-right:1px solid var(--line2)' : ''}` },
               h('b', {}, a.owner), h('span', { class: 'mono' }, b.balance == null ? '–' : fmtNative(b.balance, 'RON', { unit: true })), h('span', { class: 'xs muted' }, b.date ? shortDate(b.date) : 'fără sold'));
           }))) : null,
+        walletOwners.length ? h('section', { class: 'panel flush' }, h('div', { class: 'ghead' }, h('span', {}, 'Portofele'), h('span', {}, 'lei · euro')),
+          ...walletOwners.map((owner) => {
+            const mine = wallets.filter((w) => w.account.owner === owner);
+            const bal = (ccy) => { const w = mine.find((x) => x.account.currency_default === ccy); return w ? accountBalance(w.model, w.account.id, today) : null; };
+            const ron = bal('RON'), eur = bal('EUR');
+            const dates = [ron, eur].filter((b) => b && b.date).map((b) => b.date).sort();
+            const oldest = dates[0], other = mine[0].space !== space;
+            const stale = !oldest || [ron, eur].filter(Boolean).some((b) => b.days == null || b.days > STALE_DAYS);
+            return h('div', { class: 'acctrow' },
+              h('b', {}, owner), h('span', { class: 'mono' }, `${ron && ron.balance != null ? lei(ron.balance) : '–'} lei · ${eur && eur.balance != null ? lei(eur.balance) : '–'} €`),
+              h('span', { class: 'xs muted' }, other ? `în spațiul ${SPACE_LABEL[mine[0].space]}` : ''),
+              h('span', { class: 'xs', style: `text-align:right;${stale ? 'color:var(--neg);font-weight:600' : 'color:var(--muted)'}` }, oldest ? shortDate(oldest) : 'fără sold'));
+          })) : null,
         savings.length ? h('section', { class: 'panel', style: 'gap:8px' },
           h('span', { class: 'up' }, 'Conturi de economii'),
           h('div', { class: 'tabs3', role: 'tablist', 'aria-label': 'Al cui cont de economii' }, ...savings.map((x) => {
