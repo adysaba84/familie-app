@@ -364,3 +364,71 @@ export function currencyBreakdown(model, asOf) {
     currency, native: n, ron: currency === 'AUR' ? n : toRon(n, currency, model.rates, asOf),
   })).sort((a, b) => b.ron - a.ron);
 }
+
+// ---------- M4: deposits list, concentration, physical, accounts ----------
+export const latestBalances = (model, asOf) => latestBy(model.balances, (r) => r.account_id, asOf);
+
+// Net interest per month (RON or any currency) on a savings balance: balance * rate * 0.9 / 12.
+export const monthlyNetInterest = (balanceMinor, rateBp) =>
+  roundDiv(balanceMinor * rateBp * (10000 - INTEREST_TAX_BP), 10000 * 10000 * 12);
+
+// Active deposits by maturity, each with estimated gross/net interest and days left (negative = overdue).
+export function depositRows(model, asOf) {
+  const acc = new Map(model.accounts.map((a) => [a.id, a]));
+  return model.deposits.filter((d) => live(d) && d.status === 'active').map((d) => {
+    const gross = grossInterest(d);
+    return { deposit: d, account: acc.get(d.account_id) || null, gross, net: netOf(gross), daysLeft: daysBetween(asOf, d.maturity_date) };
+  }).sort((a, b) => (a.deposit.maturity_date < b.deposit.maturity_date ? -1 : a.deposit.maturity_date > b.deposit.maturity_date ? 1 : 0));
+}
+
+// The month where the biggest share of active deposits (in RON) matures: { month, totalRon, shareBp }.
+export function maturityConcentration(model, asOf) {
+  const byMonth = new Map();
+  let all = 0;
+  for (const d of model.deposits) {
+    if (!live(d) || d.status !== 'active') continue;
+    const ron = toRon(d.principal_minor, d.currency, model.rates, asOf);
+    const m = d.maturity_date.slice(0, 7);
+    byMonth.set(m, (byMonth.get(m) || 0) + ron); all += ron;
+  }
+  let best = null;
+  for (const [month, totalRon] of byMonth) if (!best || totalRon > best.totalRon) best = { month, totalRon };
+  return best ? { ...best, shareBp: roundDiv(best.totalRon * 10000, all) } : null;
+}
+
+// Gold items: purchase vs latest value, gain, and the value history (purchase point first).
+export function goldItems(model, asOf) {
+  return model.physical_items.filter((it) => live(it) && it.kind === 'gold').map((it) => {
+    const hist = model.physical_values.filter((v) => live(v) && v.item_id === it.id && v.date <= asOf)
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map((v) => ({ date: v.date, value: v.value_minor }));
+    const last = hist[hist.length - 1];
+    const purchase = it.purchase_value_minor || 0;
+    const value = last ? last.value : purchase;
+    return { item: it, purchase, value, valueDate: last ? last.date : it.purchase_date,
+      gainBp: purchase > 0 ? roundDiv((value - purchase) * 10000, purchase) : null,
+      history: purchase > 0 ? [{ date: it.purchase_date, value: purchase }, ...hist] : hist };
+  });
+}
+
+// Cash in the safe: latest amount per cash item (native) and its RON equivalent.
+export function safeCash(model, asOf) {
+  const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
+  return model.physical_items.filter((it) => live(it) && it.kind === 'cash').map((it) => {
+    const v = pv.get(it.id);
+    const native = v ? v.value_minor : 0;
+    return { item: it, native, ron: toRon(native, it.currency, model.rates, asOf), valueDate: v ? v.date : null };
+  });
+}
+
+// Latest balance, its date, the age in days, and the current rate for one account.
+export function accountBalance(model, accountId, asOf) {
+  const rows = model.balances.filter((b) => live(b) && b.account_id === accountId && b.date <= asOf)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a._row || 0) - (b._row || 0)));
+  const last = rows[rows.length - 1];
+  const withRate = [...rows].reverse().find((r) => r.rate_bp != null);
+  return {
+    balance: last ? last.balance_minor : null, date: last ? last.date : null,
+    days: last ? daysBetween(last.date, asOf) : null, rateBp: withRate ? withRate.rate_bp : null,
+    history: rows.map((r) => ({ date: r.date, value: r.balance_minor })),
+  };
+}

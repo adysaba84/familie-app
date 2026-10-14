@@ -30,11 +30,20 @@ if (params.get('empty') !== '1') {
   model.broker_flows.push(stamp({ date: '2026-03-01', account_id: rev.id, currency: 'EUR', instrument: 'stocks_etf', amount_minor: 26700, direction: 'in' }));
   model.broker_values.push(stamp({ date: '2026-09-03', account_id: rev.id, currency: 'EUR', instrument: 'stocks_etf', value_minor: 26400 }));
   const btC = model.accounts.find((a) => a.kind === 'deposit_bank' && a.institution === 'BT');
-  model.deposits.push(stamp({ account_id: btC.id, currency: 'RON', principal_minor: 28000000, rate_bp: 600, term_months: 12, start_date: '2026-03-01', maturity_date: '2027-03-01', capitalization: 0, status: 'active' }));
+  const salt = model.accounts.find((a) => a.kind === 'deposit_bank' && a.institution === 'Salt');
+  const D = (acc, ccy, p, bp, term, start, mat) => model.deposits.push(stamp({ account_id: acc.id, currency: ccy, principal_minor: p, rate_bp: bp, term_months: term, start_date: start, maturity_date: mat, capitalization: 0, auto_renew: 0, notify_days: 3, status: 'active' }));
+  D(btC, 'RON', 1000000, 400, 1, '2026-09-15', '2026-10-15'); D(btC, 'RON', 1500000, 450, 3, '2026-07-18', '2026-10-18');
+  D(btC, 'RON', 5000000, 525, 12, '2026-07-16', '2027-07-16'); D(btC, 'EUR', 2500000, 130, 12, '2026-07-16', '2027-07-16');
+  D(btC, 'EUR', 100000, 130, 12, '2026-07-17', '2027-07-17'); D(btC, 'USD', 567565, 325, 12, '2026-06-02', '2027-06-02');
+  D(salt, 'RON', 1027310, 530, 6, '2026-04-16', '2026-10-16'); D(salt, 'RON', 526661, 550, 6, '2026-08-13', '2027-02-13');
   model.physical_items.push(stamp({ kind: 'gold', currency: 'RON', description: '1 oz', quantity: 1, purchase_value_minor: 700000, purchase_date: '2026-01-05' }));
   model.physical_values.push(stamp({ item_id: model.physical_items[0].id, date: '2026-10-01', value_minor: 810000 }));
   const cur = model.accounts.find((a) => a.kind === 'current' && a.owner === 'Carmen' && a.institution === 'BT');
   model.balances.push(stamp({ account_id: cur.id, date: '2026-08-20', balance_minor: 2163800 }));
+  const sav = model.accounts.find((a) => a.kind === 'savings' && a.owner === 'Carmen');
+  [['2026-05-10', 1210000, 300], ['2026-07-10', 1310000, 300], ['2026-09-02', 1330000, 285], ['2026-10-02', 1398768, 285]].forEach(([d, b, r]) => model.balances.push(stamp({ account_id: sav.id, date: d, balance_minor: b, rate_bp: r })));
+  model.physical_values.push(stamp({ item_id: model.physical_items[0].id, date: '2026-04-01', value_minor: 750000 }), stamp({ item_id: model.physical_items[0].id, date: '2026-07-01', value_minor: 790000 }));
+  [['EUR', 500000], ['USD', 500000], ['RON', 1000000]].forEach(([c, v]) => { const it = stamp({ kind: 'cash', currency: c, description: 'Seif ' + c, quantity: 1, purchase_date: '2026-10-01' }); model.physical_items.push(it); model.physical_values.push(stamp({ item_id: it.id, date: '2026-10-01', value_minor: v })); });
 }
 
 const app = {

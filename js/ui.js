@@ -13,6 +13,8 @@ const ICONS = {
   trend: 'M3 17l6-6 4 4 8-8M15 7h6v6',
   dots: 'M5 12h.01M12 12h.01M19 12h.01',
   refresh: 'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5',
+  edit: 'M4 20h4L19 9l-4-4L4 16z',
+  list: 'M4 6h16M4 12h16M4 18h10',
 };
 
 export function icon(name, size = 22, sw = 1.8) {
@@ -125,3 +127,18 @@ export async function guarded(app, render) {
       h('button', { onclick: () => { app.rerender(); } }, 'Reîncearcă')));
   }
 }
+
+// Category chips under the Active header.
+export function catNav(active) {
+  const items = [['#/active', 'active', 'Toate'], ['#/bursa', 'bursa', 'Bursă'], ['#/depozite', 'depozite', 'Depozite'], ['#/fizice', 'fizice', 'Fizice'], ['#/conturi', 'conturi', 'Conturi']];
+  return h('nav', { class: 'chips', 'aria-label': 'Categorii' }, ...items.map(([href, key, label]) => h('a', { href, class: 'chip' + (active === key ? ' on' : '') }, label)));
+}
+
+// "în 3 zile" / "mâine" / "azi" / "scadent de N zile" for a maturity.
+export function whenText(daysLeft) {
+  if (daysLeft < 0) return `scadent de ${-daysLeft} zile`;
+  if (daysLeft === 0) return 'azi';
+  if (daysLeft === 1) return 'mâine';
+  return `în ${daysLeft} zile`;
+}
+export const fullDate = (iso) => `${shortDate(iso)} ${iso.slice(0, 4)}`;

@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { totalsByCategory, monthlyChange, currencyBreakdown, fromRon, staleAccounts, brokerSummary, addMonths, monthEnd } from '../calc.js';
 import { formatWhole } from '../money.js';
 import { monthlyBars } from '../charts.js';
-import { frame, mainHead, guarded, loading, lei, signed, pctText, latestRateText, fmtNative, shortDate } from '../ui.js';
+import { frame, mainHead, catNav, guarded, loading, lei, signed, pctText, latestRateText, fmtNative, shortDate } from '../ui.js';
 
 const CAT_COLOR = { deposits: '#1F6F5C', broker: '#5FA48F', physical: '#C9A24A', accounts: '#A9CFC2' };
 const CCY_COLOR = { RON: '#1F6F5C', EUR: '#4C78A8', USD: '#A9CFC2', AUR: '#C9A24A' };
@@ -25,10 +25,10 @@ export async function activeView(app) {
     const monthNameNow = MONTH_NAME[Number(today.slice(5, 7)) - 1];
 
     const cats = [
-      ['deposits', 'Depozite', depositsLabel(m.deposits.filter((d) => !d.void && d.status === 'active').length), t.deposits, null],
+      ['deposits', 'Depozite', depositsLabel(m.deposits.filter((d) => !d.void && d.status === 'active').length), t.deposits, '#/depozite'],
       ['broker', 'Bursă', 'investit vs. valoare', t.broker, '#/bursa'],
-      ['physical', 'Fizice', 'aur, numerar în seif', t.physical, null],
-      ['accounts', 'Conturi și economii', 'conturi, tichete, economii', t.accounts, null],
+      ['physical', 'Fizice', 'aur, numerar în seif', t.physical, '#/fizice'],
+      ['accounts', 'Conturi și economii', 'conturi, tichete, economii', t.accounts, '#/conturi'],
     ];
     const stale = staleAccounts(m, today).filter((s) => s.account.kind !== 'broker').length;
     const bs = brokerSummary(m, today);
@@ -49,6 +49,7 @@ export async function activeView(app) {
       tab: 'active',
       head: mainHead(app, 'Active', latestRateText(m)),
       body: [
+        catNav('active'),
         h('section', { class: 'panel' },
           h('span', { class: 'up' }, 'Total active · ' + (app.space === 'iza' ? 'Iza' : 'părinți')),
           h('div', { class: 'big-num' }, lei(t.total), ' ', h('small', {}, 'lei')),

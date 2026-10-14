@@ -225,3 +225,41 @@ test('currencyBreakdown adds up to the category total (gold as its own line)', (
   eq(b.find((x) => x.currency === 'AUR').native, 600000);
   eq(b[0].ron >= b[b.length - 1].ron, true);
 });
+
+// ---- M4 additions ----
+import { latestBalances, monthlyNetInterest, depositRows, maturityConcentration, goldItems, safeCash, accountBalance } from '../js/calc.js';
+
+test('monthlyNetInterest: 13.987,68 at 2,85% -> about 29,9 net/month', () => eq(monthlyNetInterest(1398768, 285), 2990));
+test('depositRows: sorted by maturity, with net interest and days left', () => {
+  const r = depositRows(model, '2026-03-31');
+  eq(r.map((x) => x.deposit.id), ['d2', 'd1']); eq(r[0].daysLeft, 123);
+  eq(r[1].gross, 60000); eq(r[1].net, 54000);
+});
+test('depositRows: void and non-active are left out', () => eq(depositRows({ ...model, deposits: [{ ...model.deposits[0], void: true }, { ...model.deposits[1], status: 'matured' }] }, '2026-03-31'), []));
+test('maturityConcentration: share of the biggest month', () => {
+  const c = maturityConcentration(model, '2026-03-31');
+  eq(c.month, '2026-08'); // 2 000 EUR x 5,2 beats 10 000 RON in 2027-01
+  eq(c.totalRon, 1040000);
+  eq(c.shareBp, 5098);
+  eq(maturityConcentration({ ...model, deposits: [] }, '2026-03-31'), null);
+});
+test('goldItems: purchase, latest value, gain and history', () => {
+  const g = goldItems(model, '2026-03-31');
+  eq(g.length, 1); eq(g[0].purchase, 500000); eq(g[0].value, 600000); eq(g[0].gainBp, 2000);
+  eq(g[0].history.map((p) => p.value), [500000, 600000]);
+  eq(goldItems(model, '2026-01-10')[0].value, 500000);
+});
+test('safeCash: native and RON', () => {
+  const c = safeCash(model, '2026-03-31');
+  eq(c.length, 1); eq(c[0].native, 100000); eq(c[0].ron, toRon(100000, 'EUR', rates, '2026-03-31'));
+});
+test('accountBalance: latest, age, rate carried from the last row that had one, history', () => {
+  const mm = { ...model, balances: [
+    { account_id: 'sav', date: '2026-01-01', balance_minor: 100, rate_bp: 300 },
+    { account_id: 'sav', date: '2026-03-01', balance_minor: 200, rate_bp: null },
+  ] };
+  const b = accountBalance(mm, 'sav', '2026-03-31');
+  eq(b.balance, 200); eq(b.days, 30); eq(b.rateBp, 300); eq(b.history.length, 2);
+  eq(accountBalance(mm, 'nope', '2026-03-31').balance, null);
+});
+test('latestBalances keeps the newest per account', () => eq(latestBalances(model, '2026-03-31').get('bt-cur').balance_minor, 350000));

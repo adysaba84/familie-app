@@ -75,3 +75,37 @@ export function investedVsValue(series, { width = 326, height = 110 } = {}) {
   svg('path', { d: stepPath, fill: 'none', stroke: '#5B6661', 'stroke-width': 1.6, 'stroke-dasharray': '4 3' }),
   svg('path', { d: `M${v.join(' L')}`, fill: 'none', stroke: '#1F6F5C', 'stroke-width': 2.4, 'stroke-linejoin': 'round' }));
 }
+
+// Maturity bars: principal maturing per month (RON). The month holding more than half of the
+// total is drawn red (everything maturing at once is a risk worth seeing).
+export function maturityBars(buckets, { width = 326, height = 112 } = {}) {
+  const max = Math.max(1, ...buckets.map((b) => b.totalRon));
+  const sum = buckets.reduce((s, b) => s + b.totalRon, 0) || 1;
+  const step = width / buckets.length, bw = Math.min(20, step - 4), base = 92, plot = 78;
+  const kids = [svg('line', { x1: 0, y1: base, x2: width, y2: base, stroke: '#D5DAD6' })];
+  buckets.forEach((b, i) => {
+    const x = i * step + (step - bw) / 2, cx = x + bw / 2;
+    const h = (b.totalRon / max) * plot;
+    const hot = b.totalRon / sum > 0.5;
+    if (b.totalRon > 0) {
+      kids.push(svg('rect', { x, y: base - h, width: bw, height: Math.max(h, 2), rx: 3, fill: hot ? '#B3412E' : '#1F6F5C' }));
+      kids.push(svg('text', { x: cx, y: base - h - 4, 'text-anchor': 'middle', 'font-size': 9, fill: hot ? '#B3412E' : '#16201C' }, fmtK(b.totalRon, false).replace(',0', '') + 'k'));
+    }
+    kids.push(svg('text', { x: cx, y: height - 4, 'text-anchor': 'middle', 'font-size': 9, fill: i === 0 ? '#16201C' : '#5B6661', 'font-weight': i === 0 ? 600 : 400 }, monthLabel(b.month)));
+  });
+  return svg('svg', { class: 'chart', role: 'img', viewBox: `0 0 ${width} ${height}`, 'aria-label': 'Scadențele depozitelor pe luni, următoarele 12 luni' }, kids);
+}
+
+// A small labelled history line with dots (gold value, savings balance). `baseline` draws a dashed reference.
+export function sparkline(points, { width = 326, height = 60, color = '#C9A24A', baseline = null } = {}) {
+  if (points.length === 0) return svg('svg', { class: 'chart', viewBox: `0 0 ${width} ${height}`, 'aria-hidden': 'true' });
+  const vals = points.map((p) => p.value).concat(baseline != null ? [baseline] : []);
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const x = (i) => (points.length === 1 ? width / 2 : 8 + (i * (width - 16)) / (points.length - 1));
+  const y = (v) => height - 8 - ((v - lo) / span) * (height - 16);
+  const kids = [];
+  if (baseline != null) kids.push(svg('line', { x1: 0, y1: y(baseline), x2: width, y2: y(baseline), stroke: '#D5DAD6', 'stroke-dasharray': '3 3' }));
+  if (points.length > 1) kids.push(svg('path', { d: 'M' + points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' L'), fill: 'none', stroke: color, 'stroke-width': 2.4, 'stroke-linejoin': 'round' }));
+  points.forEach((p, i) => kids.push(svg('circle', { cx: x(i), cy: y(p.value), r: 4, fill: i === points.length - 1 ? color : '#FFFFFF', stroke: color, 'stroke-width': 2 })));
+  return svg('svg', { class: 'chart', role: 'img', viewBox: `0 0 ${width} ${height}`, 'aria-label': `Istoric: ${points.length} valori introduse` }, kids);
+}
