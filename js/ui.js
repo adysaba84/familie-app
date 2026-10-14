@@ -67,11 +67,15 @@ export function spaceChip(app) {
 }
 
 export function frame(app, { head, body, tab }) {
+  document.getElementById('app').classList.remove('kid'); // leaving Iza's screen
   mount(head, ...body, tabbar(tab));
 }
 
 export function mainHead(app, title, sub) {
-  return h('header', { class: 'pagehead' }, h('div', { class: 't' }, h('b', {}, title), sub ? h('span', { class: 'sm muted' }, sub) : null), spaceChip(app));
+  // in Iza's space a parent can open her screen ("modul copil") from every main screen
+  const kidLink = app.space === 'iza' && app.spaces.length > 1 ? h('a', { href: '#/iza', class: 'spacechip kidlink' }, 'Modul copil') : null;
+  return h('header', { class: 'pagehead' }, h('div', { class: 't' }, h('b', {}, title), sub ? h('span', { class: 'sm muted' }, sub) : null),
+    h('div', { style: 'display:flex;gap:6px;align-items:center' }, kidLink, spaceChip(app)));
 }
 
 export function backHead(href, title, right) {

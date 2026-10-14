@@ -148,3 +148,38 @@ label.f{display:flex;flex-direction:column;gap:6px}
 .tbl .r.sub{padding-top:6px;padding-bottom:6px;font-size:12px;background:#FAFBFA}
 .tbl .r.sub .nm{padding-left:14px}
 .tbl .r.sub .nm span{font-weight:400}
+
+/* Iza (kid) screen */
+.kidbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#EEEAFB;color:var(--kid);font-size:13px;font-weight:600}
+.kidbar .back{color:var(--kid)}
+.kidhead{padding:8px 16px 0}
+.kidhead h1{font-size:1.7rem;line-height:1.2;margin:8px 0}
+.kidhead p,.kidlead{color:var(--muted);margin:0 0 4px}
+.kidh2{font-size:1.25rem;color:var(--kid);margin:22px 16px 4px}
+.kidlead{margin:0 16px 8px}
+.hero{margin:16px;padding:18px;border-radius:18px;background:linear-gradient(135deg,#5B3FD1,#7A5FE6);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hero-col{display:flex;flex-direction:column;gap:2px}
+.hero .k{font-size:12px;opacity:.85}
+.hero .v{font-size:1.5rem;font-weight:800;font-family:var(--mono)}
+.hero .arrow{font-size:1.6rem;opacity:.8}
+.box{margin:10px 16px 0;padding:14px 16px;background:#fff;border:1px solid #D9D1F5;border-radius:16px}
+.box b{font-size:1.05rem}
+.box .amt{font-family:var(--mono);font-weight:700;color:var(--kid);font-size:1.1rem}
+.box p{margin:6px 0 0;color:var(--muted);font-size:.92rem}
+.ladder{padding-bottom:4px}
+.rung{display:grid;grid-template-columns:48px 1fr 84px;gap:10px;align-items:center;margin:8px 16px;font-size:.9rem}
+.rung .age{font-weight:700;color:var(--kid)}
+.rbar{height:14px;background:#EEEAFB;border-radius:7px}
+.rbar > div{height:14px;background:var(--kid);border-radius:7px}
+.rung .amt{text-align:right;font-family:var(--mono);font-weight:600}
+.small{color:var(--muted);font-size:.8rem;margin:8px 16px}
+
+.kidlink{background:#EEEAFB;border-color:#D9D1F5;color:var(--kid);font-weight:600;text-decoration:none}
+.pdfbtn{min-height:34px;padding:0 12px;border-radius:17px;background:var(--kid);color:#fff;font-size:13px}
+@media print{
+  body{background:#fff}
+  .kidbar,.tabbar,.savebar,.card button,button{display:none!important}
+  main{max-width:none;padding:0;min-height:0}
+  .hero,.rbar,.rbar>div,.box{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .box,.rung,.hero{break-inside:avoid}
+}

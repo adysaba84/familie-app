@@ -1,5 +1,5 @@
 import { TABS } from './schema.js';
-import { batchGet, appendRows, updateRange } from './sheets.js';
+import { batchGet, appendRows, updateRange, tabTitles, addTab } from './sheets.js';
 import { parseTable, toRow, columnLetter } from './model.js';
 import { currentEmail } from './auth.js';
 
@@ -8,27 +8,36 @@ import { currentEmail } from './auth.js';
 const TAB_NAMES = Object.keys(TABS);
 const nowIso = () => new Date().toISOString();
 
-// The two files may have been created with an older header. If a tab has no data rows yet, its
-// header is rewritten to the current schema; if it has data, we refuse (needs a manual migration).
-const checked = new Set();
-async function ensureHeaders(fileId) {
-  if (checked.has(fileId)) return;
-  const heads = await batchGet(fileId, TAB_NAMES.map((t) => `${t}!1:2`));
-  for (let i = 0; i < TAB_NAMES.length; i++) {
-    const tab = TAB_NAMES[i], want = TABS[tab];
+// The files may have been created with an older schema. Missing tabs are created (editors only; a
+// read-only user just skips them) and a tab with no data rows gets its header rewritten to the current
+// schema; a tab that already has data and a different header is refused (needs a manual migration).
+// Returns the tabs that exist.
+const checked = new Map();
+async function ensureSchema(fileId) {
+  if (checked.has(fileId)) return checked.get(fileId);
+  const titles = new Set(await tabTitles(fileId));
+  for (const tab of TAB_NAMES.filter((t) => !titles.has(t))) {
+    try { await addTab(fileId, tab, TABS[tab]); titles.add(tab); } catch (e) { /* read-only: leave it out */ }
+  }
+  const present = TAB_NAMES.filter((t) => titles.has(t));
+  const heads = await batchGet(fileId, present.map((t) => `${t}!1:2`));
+  for (let i = 0; i < present.length; i++) {
+    const tab = present[i], want = TABS[tab];
     const have = (heads[i][0] || []).map(String);
     if (have.join('|') === want.join('|')) continue;
     if (heads[i].length > 1) throw new Error('schema_mismatch:' + tab);
-    await updateRange(fileId, `${tab}!A1`, [want]);
+    try { await updateRange(fileId, `${tab}!A1`, [want]); } catch (e) { /* read-only: fine */ }
   }
-  checked.add(fileId);
+  checked.set(fileId, present);
+  return present;
 }
 
 export async function loadModel(fileId) {
-  await ensureHeaders(fileId);
-  const tables = await batchGet(fileId, TAB_NAMES);
+  const present = await ensureSchema(fileId);
+  const tables = await batchGet(fileId, present);
   const model = {};
-  TAB_NAMES.forEach((t, i) => { model[t] = parseTable(tables[i]); });
+  for (const t of TAB_NAMES) model[t] = [];
+  present.forEach((t, i) => { model[t] = parseTable(tables[i]); });
   return model;
 }
 

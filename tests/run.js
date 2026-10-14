@@ -1,7 +1,7 @@
 import { h } from '../js/dom.js';
 import { tests, setCurrent } from './harness.js';
 
-const suites = ['money.test.js', 'model.test.js', 'calc.test.js', 'security.test.js'];
+const suites = ['money.test.js', 'model.test.js', 'calc.test.js', 'iza-plan.test.js', 'security.test.js'];
 for (const s of suites) {
   setCurrent(s);
   await import('./' + s);

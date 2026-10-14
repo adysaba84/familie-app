@@ -86,7 +86,7 @@ const routes = {
 for (const [path, view] of Object.entries(SCREENS)) {
   routes[path] = guard(() => {
     if (!app || !files.role) return router.go('/setup');
-    if (files.role === 'kid') return kidView({ email: currentEmail(), onSignOut: logout });
+    if (files.role === 'kid') return kidView(app);
     return view(app);
   });
 }

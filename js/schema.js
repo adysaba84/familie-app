@@ -12,6 +12,8 @@ export const TABS = {
   physical_values: withCommon(['id', 'item_id', 'date', 'value_minor']),
   balances: withCommon(['id', 'account_id', 'date', 'balance_minor', 'rate_bp']),
   rates: ['date', 'EUR', 'USD', 'XAU', 'source'],
+  // key/value settings (private plan parameters live here, never in the public code); latest non-void row per key wins
+  settings: withCommon(['key', 'value']),
   notify: ['email', 'kinds', 'days_before_maturity'],
   notifications_log: ['key', 'sent_at'],
   audit: ['ts', 'user', 'action', 'tab', 'row_id', 'summary'],

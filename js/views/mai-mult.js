@@ -12,6 +12,7 @@ export async function maiMultView(app) {
         ...['parents', 'iza'].map((s) => h('div', { class: 'between sm' }, h('span', {}, 'FIN · ' + SPACE_LABEL[s]),
           h('span', { class: 'muted' }, app.spaces.includes(s) ? (app.canEdit(s) ? 'editor' : 'doar citire') : 'fără acces')))),
       h('section', { class: 'panel flush' },
+        app.spaces.includes('iza') ? h('a', { class: 'listrow', href: '#/iza', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Vezi ca Iza'), h('span', { class: 'xs muted' }, 'ecranul ei, doar de citire')), h('span', {}, '›')) : null,
         h('a', { class: 'listrow', href: '#/curs', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Curs BNR'), h('span', { class: 'xs muted' }, 'introdu cursul manual')), h('span', {}, '›')),
         h('a', { class: 'listrow', href: '#/setup', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Alege fișierele'), h('span', { class: 'xs muted' }, 'dacă lipsește vreun fișier')), h('span', {}, '›'))),
       h('div', { class: 'savebar' }, h('button', { class: 'secondary', style: 'width:100%', onclick: () => app.logout() }, 'Ieșire')),

@@ -67,3 +67,17 @@ export function updateRange(id, range, rows) {
     { method: 'PUT', body: JSON.stringify({ values: rows }) },
   );
 }
+
+// Tabs of a spreadsheet, and creation of a missing tab (editors only; a read-only user gets a 403 and the caller skips it).
+export async function tabTitles(id) {
+  const r = await api(`https://sheets.googleapis.com/v4/spreadsheets/${enc(id)}?fields=sheets.properties.title`);
+  return (r.sheets || []).map((x) => x.properties.title);
+}
+
+export async function addTab(id, title, header) {
+  await api(`https://sheets.googleapis.com/v4/spreadsheets/${enc(id)}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({ requests: [{ addSheet: { properties: { title, gridProperties: { frozenRowCount: 1 } } } }] }),
+  });
+  await updateRange(id, `${title}!A1`, [header]);
+}

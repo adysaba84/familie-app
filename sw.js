@@ -5,7 +5,7 @@ const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/main.js', 'js/config.js', 'js/dom.js', 'js/auth.js', 'js/picker.js', 'js/sheets.js',
   'js/schema.js', 'js/files.js', 'js/router.js', 'js/money.js', 'js/model.js', 'js/calc.js', 'js/store.js',
-  'js/app.js', 'js/seed.js', 'js/ui.js', 'js/charts.js', 'js/screens.js',
+  'js/app.js', 'js/seed.js', 'js/iza-plan.js', 'js/ui.js', 'js/charts.js', 'js/screens.js',
   'js/views/login.js', 'js/views/setup.js', 'js/views/kid.js', 'js/views/active.js', 'js/views/bursa.js',
   'js/views/bursa-nou.js', 'js/views/bursa-valoare.js', 'js/views/curs.js', 'js/views/mai-mult.js',
   'js/views/depozite.js', 'js/views/depozit-nou.js', 'js/views/fizice.js', 'js/views/fizice-nou.js', 'js/views/conturi.js', 'js/views/solduri.js',
