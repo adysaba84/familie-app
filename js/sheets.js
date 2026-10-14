@@ -22,6 +22,14 @@ export function fileAccess(id) {
   return api(`https://www.googleapis.com/drive/v3/files/${enc(id)}?fields=id,name,capabilities/canEdit`);
 }
 
+// With drive.file, Drive lists exactly the files this person has granted the app (created or
+// picked once, in any device), so the app finds its files itself on every new device.
+export async function listAppSpreadsheets() {
+  const q = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and name contains 'FIN'");
+  const r = await api(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=100&fields=files(id,name,capabilities/canEdit)`);
+  return r.files || [];
+}
+
 // Creates a spreadsheet owned by the signed-in user, with every tab and its header row.
 export async function createSpreadsheet(title) {
   const sheets = Object.entries(TABS).map(([name, cols]) => ({

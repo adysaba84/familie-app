@@ -1,10 +1,10 @@
 import { CLIENT_ID } from './config.js';
 import { h, mount } from './dom.js';
-import { gisReady, signIn, signOut, currentEmail, isSignedIn } from './auth.js';
+import { gisReady, signIn, trySilentSignIn, signOut, currentEmail, isSignedIn } from './auth.js';
 import { pickSpreadsheets } from './picker.js';
 import { createSpreadsheet } from './sheets.js';
 import { FILE_NAMES } from './schema.js';
-import { loadIds, saveIds, resolveRole } from './files.js';
+import { resolveRole } from './files.js';
 import { createRouter } from './router.js';
 import { loginView } from './views/login.js';
 import { setupView } from './views/setup.js';
@@ -40,13 +40,7 @@ function showSetup(message, busy = false) {
     onPick: async () => {
       showSetup({ text: 'Se deschide Google Drive…' }, true);
       try {
-        const picked = await pickSpreadsheets();
-        const ids = loadIds();
-        for (const d of picked) {
-          if (d.name === FILE_NAMES.parents) ids.parents = d.id;
-          else if (d.name === FILE_NAMES.iza) ids.iza = d.id;
-        }
-        saveIds(ids);
+        await pickSpreadsheets(); // picking grants access; the files are then found by name
         files = await resolveRole();
         if (files.role) router.go('/active');
         else showSetup({ error: true, text: 'Nu am găsit fișierele „FIN · …” în alegerea ta.' });
@@ -57,8 +51,8 @@ function showSetup(message, busy = false) {
     onCreate: async () => {
       showSetup({ text: 'Se creează fișierele…' }, true);
       try {
-        const ids = { parents: await createSpreadsheet(FILE_NAMES.parents), iza: await createSpreadsheet(FILE_NAMES.iza) };
-        saveIds(ids);
+        await createSpreadsheet(FILE_NAMES.parents);
+        await createSpreadsheet(FILE_NAMES.iza);
         files = await resolveRole();
         router.go('/active');
       } catch (e) {
@@ -80,14 +74,19 @@ const router = createRouter({
   '/active': guard(() => {
     if (!files || !files.role) return router.go('/setup');
     if (files.role === 'kid') return kidView({ email: currentEmail(), onSignOut: logout });
-    return homeView({ email: currentEmail(), files, picked: loadIds(), onSignOut: logout, onPickMore: () => router.go('/setup') });
+    return homeView({ email: currentEmail(), files, onSignOut: logout, onPickMore: () => router.go('/setup') });
   }),
 }, '/');
 
 function start() {
   if (!CLIENT_ID) { mount(h('p', { class: 'err' }, 'Lipsește CLIENT_ID în js/config.js')); return; }
   if (!gisReady()) { setTimeout(start, 100); return; }
-  router.render();
+  trySilentSignIn().then(async (who) => {
+    if (who) {
+      try { files = await resolveRole(); router.go(files.role ? '/active' : '/setup'); return; } catch { /* fall through to login */ }
+    }
+    router.render();
+  });
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
