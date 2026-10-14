@@ -80,7 +80,7 @@ const router = createRouter({
   '/active': guard(() => {
     if (!files || !files.role) return router.go('/setup');
     if (files.role === 'kid') return kidView({ email: currentEmail(), onSignOut: logout });
-    return homeView({ email: currentEmail(), files, onSignOut: logout });
+    return homeView({ email: currentEmail(), files, picked: loadIds(), onSignOut: logout, onPickMore: () => router.go('/setup') });
   }),
 }, '/');
 
