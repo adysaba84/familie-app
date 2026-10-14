@@ -131,7 +131,7 @@ export async function guarded(app, render) {
 
 // Category chips under the Active header.
 export function catNav(active) {
-  const items = [['#/active', 'active', 'Toate'], ['#/bursa', 'bursa', 'Bursă'], ['#/depozite', 'depozite', 'Depozite'], ['#/fizice', 'fizice', 'Fizice'], ['#/conturi', 'conturi', 'Conturi']];
+  const items = [['#/active', 'active', 'Toate'], ['#/bursa', 'bursa', 'Bursă'], ['#/depozite', 'depozite', 'Depozite'], ['#/fizice', 'fizice', 'Seif'], ['#/conturi', 'conturi', 'Conturi']];
   return h('nav', { class: 'chips', 'aria-label': 'Categorii' }, ...items.map(([href, key, label]) => h('a', { href, class: 'chip' + (active === key ? ' on' : '') }, label)));
 }
 

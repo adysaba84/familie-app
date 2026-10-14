@@ -27,7 +27,7 @@ export async function activeView(app) {
     const cats = [
       ['deposits', 'Depozite', depositsLabel(m.deposits.filter((d) => !d.void && d.status === 'active').length), t.deposits, '#/depozite'],
       ['broker', 'Bursă', 'investit vs. valoare', t.broker, '#/bursa'],
-      ['physical', 'Fizice', 'aur, numerar în seif', t.physical, '#/fizice'],
+      ['physical', 'Seif', 'aur, numerar', t.physical, '#/fizice'],
       ['accounts', 'Conturi și economii', 'conturi, tichete, economii', t.accounts, '#/conturi'],
     ];
     const stale = staleAccounts(m, today).filter((s) => s.account.kind !== 'broker').length;
@@ -60,7 +60,7 @@ export async function activeView(app) {
           monthlyBars(changes),
           h('div', { class: 'sep stack sm', style: 'gap:6px' },
             h('span', { style: 'font-weight:600' }, `Din ce vin cei ${signed(last.delta)} din ${monthNameNow}`),
-            src('broker', 'Bursă'), src('deposits', 'Depozite'), src('physical', 'Fizice'), src('accounts', 'Conturi'),
+            src('broker', 'Bursă'), src('deposits', 'Depozite'), src('physical', 'Seif'), src('accounts', 'Conturi'),
             h('span', { class: 'muted xs' }, last.newMoney
               ? `din care bani noi depuși la bursă: ${formatWhole(last.newMoney)} · restul din randament și curs`
               : 'fără depuneri noi la bursă în această lună'))),
