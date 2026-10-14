@@ -63,13 +63,13 @@ export async function obligatiiView(app) {
     const any = ['pension', 'insurance', 'loan', 'card'].some((k) => mine(k).length);
     frame(app, {
       tab: 'more',
-      head: backHead('#/mai-mult', 'Pensii și datorii'),
+      head: backHead('#/mai-mult', 'Pensii și datornici'),
       body: [
         group('Pensii (P2, P3)', 'pension'),
         group('Asigurări · valoare de răscumpărare', 'insurance'),
-        group('Împrumuturi date', 'loan'),
+        group('Datornici · împrumuturi date', 'loan'),
         cardsPanel,
-        any ? null : h('div', { class: 'panel' }, h('p', { class: 'muted', style: 'margin:0' }, 'Nicio pensie, asigurare, împrumut sau card adăugat încă.')),
+        any ? null : h('div', { class: 'panel' }, h('p', { class: 'muted', style: 'margin:0' }, 'Nicio pensie, asigurare, datornic sau card adăugat încă.')),
         canEdit && any ? h('a', { class: 'btn big', href: '#/conturi/solduri', style: 'margin:16px' }, 'Actualizează toate soldurile') : null,
       ],
     });

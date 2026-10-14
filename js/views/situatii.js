@@ -65,7 +65,7 @@ export async function situatiiView(app) {
 
     const wd = delta(cur.wealth, past.wealth);
     frame(app, {
-      tab: 'active',
+      tab: 'situatii',
       head: backHead('#/active', 'Situații', h('span', { class: 'sm muted', style: 'padding-right:6px' }, shortDate(today))),
       body: [
         options.length > 1 ? seg(options.map((o) => [o, PERSON[o]]), who, (k) => { who = k; app.rerender(); }, options.length) : null,

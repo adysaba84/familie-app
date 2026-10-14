@@ -15,6 +15,7 @@ const ICONS = {
   dots: 'M5 12h.01M12 12h.01M19 12h.01',
   refresh: 'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5',
   edit: 'M4 20h4L19 9l-4-4L4 16z',
+  pie: 'M12 3v9h9a9 9 0 1 1-9-9zM15 3.5A9 9 0 0 1 20.5 9H15z',
   list: 'M4 6h16M4 12h16M4 18h10',
 };
 
@@ -53,7 +54,7 @@ function tabbar(active) {
   const item = (href, key, label, ic, extra = '') => h('a', { href, class: (active === key ? 'on ' : '') + extra }, ic, label);
   return h('nav', { class: 'tabbar', 'aria-label': 'Navigare' }, h('div', {},
     item('#/active', 'active', 'Active', icon('trend')),
-    h('a', { href: '#/bursa/nou', class: 'fab', 'aria-label': 'Adaugă' }, h('span', {}, icon('plus', 24, 2.2))),
+    item('#/situatii', 'situatii', 'Situații', icon('pie')),
     item('#/mai-mult', 'more', 'Mai mult', icon('dots'))));
 }
 
