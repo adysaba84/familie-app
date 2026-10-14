@@ -21,18 +21,9 @@ export async function conturiView(app) {
 
     const currents = mine('current');
     const vouchers = mine('voucher');
-    // savings: this space + (for parents) Iza's KID account, shown but not counted in the parents' total
-    const savings = [];
-    for (const s of app.spaces) {
-      const model = s === space ? m : await app.model(s);
-      for (const a of model.accounts.filter((x) => !x.void && x.kind === 'savings' && x.status !== 'closed')) savings.push({ space: s, account: a, model });
-    }
-    // wallets: this space + other spaces (Iza's wallet is shown here but not counted in this total)
-    const wallets = [];
-    for (const sp of app.spaces) {
-      const model = sp === space ? m : await app.model(sp);
-      for (const a of model.accounts.filter((x) => !x.void && x.kind === 'wallet' && x.status !== 'closed')) wallets.push({ space: sp, account: a, model });
-    }
+    // each space shows only its own accounts (Iza's savings and wallets are not mixed into the parents' screen)
+    const savings = mine('savings').map((account) => ({ space, account, model: m }));
+    const wallets = mine('wallet').map((account) => ({ space, account, model: m }));
     const walletOwners = [...new Set(wallets.map((w) => w.account.owner))];
     if (!savings.find((x) => `${x.space}|${x.account.id}` === tab)) {
       const first = savings.find((x) => accountBalance(x.model, x.account.id, today).balance != null) || savings[0];
