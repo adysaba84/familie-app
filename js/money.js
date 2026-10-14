@@ -52,3 +52,11 @@ export function parsePercent(input) {
 export function formatPercent(bp) {
   return formatMinor(bp) + '%';
 }
+
+// Whole units for big numbers on overview screens: 53492000 bani -> "534.920".
+export function formatWhole(minor) {
+  const whole = Math.round(Math.abs(minor) / 100);
+  return (minor < 0 && whole !== 0 ? '-' : '') + String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+export const CCY_SYMBOL = { RON: 'lei', EUR: '€', USD: '$', AUR: 'aur' };

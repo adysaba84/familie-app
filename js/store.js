@@ -8,7 +8,24 @@ import { currentEmail } from './auth.js';
 const TAB_NAMES = Object.keys(TABS);
 const nowIso = () => new Date().toISOString();
 
+// The two files may have been created with an older header. If a tab has no data rows yet, its
+// header is rewritten to the current schema; if it has data, we refuse (needs a manual migration).
+const checked = new Set();
+async function ensureHeaders(fileId) {
+  if (checked.has(fileId)) return;
+  const heads = await batchGet(fileId, TAB_NAMES.map((t) => `${t}!1:2`));
+  for (let i = 0; i < TAB_NAMES.length; i++) {
+    const tab = TAB_NAMES[i], want = TABS[tab];
+    const have = (heads[i][0] || []).map(String);
+    if (have.join('|') === want.join('|')) continue;
+    if (heads[i].length > 1) throw new Error('schema_mismatch:' + tab);
+    await updateRange(fileId, `${tab}!A1`, [want]);
+  }
+  checked.add(fileId);
+}
+
 export async function loadModel(fileId) {
+  await ensureHeaders(fileId);
   const tables = await batchGet(fileId, TAB_NAMES);
   const model = {};
   TAB_NAMES.forEach((t, i) => { model[t] = parseTable(tables[i]); });
@@ -34,4 +51,14 @@ export async function voidRecord(fileId, tab, rec, reason = '') {
   const reasonCol = columnLetter(cols.indexOf('void_reason') + 1);
   await updateRange(fileId, `${tab}!${voidCol}${rec._row}:${reasonCol}${rec._row}`, [['1', reason]]);
   await appendRows(fileId, 'audit', [auditRow('void', tab, rec.id, reason)]);
+}
+
+// Adds several records of one tab in a single request (one audit row for the whole batch).
+export async function addRecords(fileId, tab, list, summary = '') {
+  const recs = list.map((fields) => ({
+    id: crypto.randomUUID(), ...fields, created_by: currentEmail(), created_at: nowIso(), void: false, void_reason: '',
+  }));
+  await appendRows(fileId, tab, recs.map((r) => toRow(tab, r)));
+  await appendRows(fileId, 'audit', [auditRow('add', tab, recs.map((r) => r.id).join(','), summary)]);
+  return recs;
 }

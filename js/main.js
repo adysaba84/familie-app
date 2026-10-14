@@ -5,27 +5,39 @@ import { pickSpreadsheets } from './picker.js';
 import { createSpreadsheet } from './sheets.js';
 import { FILE_NAMES } from './schema.js';
 import { resolveRole } from './files.js';
+import { createApp } from './app.js';
 import { createRouter } from './router.js';
+import { SCREENS } from './screens.js';
 import { loginView } from './views/login.js';
 import { setupView } from './views/setup.js';
-import { homeView } from './views/home.js';
 import { kidView } from './views/kid.js';
 
 let files = null; // {parents, iza, role} once resolved
+let app = null;
 
 function logout() {
   signOut();
   files = null;
+  app = null;
   document.getElementById('app').classList.remove('kid');
   location.hash = '#/';
   router.render();
 }
 
+// Called once we know which files this person can open.
+function ready(resolved) {
+  files = resolved;
+  app = createApp({ files, email: currentEmail() });
+  app.go = (path) => router.go(path);
+  app.rerender = () => router.render();
+  app.logout = logout;
+  router.go(files.role ? '/active' : '/setup');
+}
+
 async function doSignIn() {
   try {
     await signIn();
-    files = await resolveRole();
-    router.go(files.role ? '/active' : '/setup');
+    ready(await resolveRole());
   } catch (e) {
     loginView({ onSignIn: doSignIn, error: 'Autentificarea a eșuat. Încearcă din nou.' });
   }
@@ -41,8 +53,8 @@ function showSetup(message, busy = false) {
       showSetup({ text: 'Se deschide Google Drive…' }, true);
       try {
         await pickSpreadsheets(); // picking grants access; the files are then found by name
-        files = await resolveRole();
-        if (files.role) router.go('/active');
+        const r = await resolveRole();
+        if (r.role) ready(r);
         else showSetup({ error: true, text: 'Nu am găsit fișierele „FIN · …” în alegerea ta.' });
       } catch (e) {
         showSetup({ error: true, text: 'Nu am putut deschide selectorul de fișiere.' });
@@ -53,8 +65,7 @@ function showSetup(message, busy = false) {
       try {
         await createSpreadsheet(FILE_NAMES.parents);
         await createSpreadsheet(FILE_NAMES.iza);
-        files = await resolveRole();
-        router.go('/active');
+        ready(await resolveRole());
       } catch (e) {
         showSetup({ error: true, text: 'Crearea fișierelor a eșuat.' });
       }
@@ -68,22 +79,25 @@ const guard = (fn) => () => {
   return fn();
 };
 
-const router = createRouter({
+const routes = {
   '/': guard(() => router.go(files && files.role ? '/active' : '/setup')),
   '/setup': guard(() => showSetup()),
-  '/active': guard(() => {
-    if (!files || !files.role) return router.go('/setup');
+};
+for (const [path, view] of Object.entries(SCREENS)) {
+  routes[path] = guard(() => {
+    if (!app || !files.role) return router.go('/setup');
     if (files.role === 'kid') return kidView({ email: currentEmail(), onSignOut: logout });
-    return homeView({ email: currentEmail(), files, onSignOut: logout, onPickMore: () => router.go('/setup') });
-  }),
-}, '/');
+    return view(app);
+  });
+}
+const router = createRouter(routes, '/');
 
 function start() {
   if (!CLIENT_ID) { mount(h('p', { class: 'err' }, 'Lipsește CLIENT_ID în js/config.js')); return; }
   if (!gisReady()) { setTimeout(start, 100); return; }
   trySilentSignIn().then(async (who) => {
     if (who) {
-      try { files = await resolveRole(); router.go(files.role ? '/active' : '/setup'); return; } catch { /* fall through to login */ }
+      try { ready(await resolveRole()); return; } catch { /* fall through to login */ }
     }
     router.render();
   });

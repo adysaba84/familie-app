@@ -1,0 +1,20 @@
+import { h } from '../dom.js';
+import { SPACE_LABEL } from '../schema.js';
+import { frame } from '../ui.js';
+
+export async function maiMultView(app) {
+  frame(app, {
+    tab: 'more',
+    head: h('header', { class: 'pagehead' }, h('div', { class: 't' }, h('b', {}, 'Mai mult'), h('span', { class: 'sm muted' }, app.email))),
+    body: [
+      h('section', { class: 'panel' },
+        h('span', { class: 'up' }, 'Fișiere'),
+        ...['parents', 'iza'].map((s) => h('div', { class: 'between sm' }, h('span', {}, 'FIN · ' + SPACE_LABEL[s]),
+          h('span', { class: 'muted' }, app.spaces.includes(s) ? (app.canEdit(s) ? 'editor' : 'doar citire') : 'fără acces')))),
+      h('section', { class: 'panel flush' },
+        h('a', { class: 'listrow', href: '#/curs', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Curs BNR'), h('span', { class: 'xs muted' }, 'introdu cursul manual')), h('span', {}, '›')),
+        h('a', { class: 'listrow', href: '#/setup', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Alege fișierele'), h('span', { class: 'xs muted' }, 'dacă lipsește vreun fișier')), h('span', {}, '›'))),
+      h('div', { class: 'savebar' }, h('button', { class: 'secondary', style: 'width:100%', onclick: () => app.logout() }, 'Ieșire')),
+    ],
+  });
+}

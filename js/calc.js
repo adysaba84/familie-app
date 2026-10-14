@@ -24,6 +24,8 @@ export function addMonths(date, n) {
   return isoOf(Date.UTC(ny, nm, Math.min(d, last)));
 }
 
+export const addDays = (date, n) => isoOf(utc(date) + n * 86400000);
+
 export function monthEnd(date) {
   const [y, m] = parts(date);
   return isoOf(Date.UTC(y, m, 0));
@@ -93,14 +95,14 @@ export function brokerValueByAccount(values, asOf) {
 }
 
 export function brokerSummary(model, asOf) {
-  const invested = investedByAccount(model.broker_flows, asOf);
-  const value = brokerValueByAccount(model.broker_values, asOf);
-  const keys = new Set([...invested.keys(), ...value.keys()]);
-  const rows = [...keys].sort().map((k) => {
-    const [account_id, currency] = k.split('|');
-    const inv = invested.get(k) || 0, val = value.get(k) || 0;
-    return { account_id, currency, invested: inv, value: val, gain: val - inv };
-  });
+  const per = new Map();
+  for (const c of brokerCells(model, asOf)) {
+    const k = c.account_id + '|' + c.currency;
+    const r = per.get(k) || { account_id: c.account_id, currency: c.currency, invested: 0, value: 0 };
+    r.invested += c.invested; r.value += c.value;
+    per.set(k, r);
+  }
+  const rows = [...per.keys()].sort().map((k) => ({ ...per.get(k), gain: per.get(k).value - per.get(k).invested }));
   let investedRon = 0, valueRon = 0;
   for (const r of rows) {
     investedRon += toRon(r.invested, r.currency, model.rates, asOf);
@@ -249,4 +251,116 @@ export function staleAccounts(model, today, days = STALE_DAYS) {
     if (age === null || age > days) out.push({ account: a, lastDate: d, days: age });
   }
   return out;
+}
+
+// ---------- broker: instrument detail, groupings, series ----------
+// Invested per `${account}|${currency}|${instrument}` (flows without an instrument count as stocks_etf).
+export function investedByInstrument(flows, asOf = '9999-12-31') {
+  const out = new Map();
+  for (const f of flows) {
+    if (!live(f) || f.date > asOf) continue;
+    const k = `${f.account_id}|${f.currency}|${f.instrument || 'stocks_etf'}`;
+    out.set(k, (out.get(k) || 0) + (f.direction === 'in' ? f.amount_minor : -f.amount_minor));
+  }
+  return out;
+}
+
+// One record per (account, currency, instrument) with invested, value and the date of the last value.
+function brokerCells(model, asOf) {
+  const inv = investedByInstrument(model.broker_flows, asOf);
+  const vals = latestBrokerValues(model.broker_values, asOf);
+  const keys = new Set([...inv.keys(), ...vals.keys()]);
+  return [...keys].sort().map((k) => {
+    const [account_id, currency, instrument] = k.split('|');
+    const v = vals.get(k);
+    const invested = inv.get(k) || 0;
+    // bonds (incl. titluri de stat) stay at investment value until a value is entered
+    const value = v ? v.value_minor : instrument === 'bonds' ? invested : 0;
+    return { account_id, currency, instrument, invested, value, valueDate: v ? v.date : null };
+  });
+}
+
+// Groups for the Bursă table. by: 'platform' (account + currency, native amounts), 'instrument'
+// (RON equivalents) or 'currency' (native amounts). `gainPctBp` is gain / invested in basis points.
+export function brokerGroups(model, asOf, by) {
+  const acc = new Map(model.accounts.map((a) => [a.id, a]));
+  const groups = new Map();
+  for (const c of brokerCells(model, asOf)) {
+    const ron = by === 'instrument';
+    const inv = ron ? toRon(c.invested, c.currency, model.rates, asOf) : c.invested;
+    const val = ron ? toRon(c.value, c.currency, model.rates, asOf) : c.value;
+    const key = by === 'platform' ? `${c.account_id}|${c.currency}` : by === 'instrument' ? c.instrument : c.currency;
+    const g = groups.get(key) || { key, currency: ron ? 'RON' : c.currency, invested: 0, value: 0, valueDate: null, instruments: new Set() };
+    if (by === 'platform') g.account = acc.get(c.account_id) || null;
+    g.invested += inv; g.value += val; g.instruments.add(c.instrument);
+    if (c.valueDate && (!g.valueDate || g.valueDate < c.valueDate)) g.valueDate = c.valueDate;
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({
+    ...g, instruments: [...g.instruments].sort(), gain: g.value - g.invested,
+    gainPctBp: g.invested > 0 ? roundDiv((g.value - g.invested) * 10000, g.invested) : null,
+  })).sort((a, b) => (a.key < b.key ? -1 : 1));
+}
+
+// Invested vs value (RON) at the end of each of the last `months` months (the last point is `today`).
+export function brokerSeries(model, today, months = 12) {
+  const out = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = i === 0 ? today : monthEnd(addMonths(today.slice(0, 7) + '-01', -i));
+    const s = brokerSummary(model, d);
+    out.push({ date: d, investedRon: s.investedRon, valueRon: s.valueRon });
+  }
+  return out;
+}
+
+// Value of one broker account in RON at a date (instruments and currencies summed).
+export function accountValueRon(model, accountId, asOf) {
+  let total = 0;
+  for (const v of latestBrokerValues(model.broker_values, asOf).values()) {
+    if (v.account_id === accountId) total += toRon(v.value_minor, v.currency, model.rates, asOf);
+  }
+  return total;
+}
+
+// Net deposits (in - out) of one account in RON in (after, upTo].
+export function accountNetFlowsRon(model, accountId, after, upTo) {
+  let total = 0;
+  for (const f of model.broker_flows) {
+    if (!live(f) || f.account_id !== accountId || f.date <= after || f.date > upTo) continue;
+    total += toRon(f.direction === 'in' ? f.amount_minor : -f.amount_minor, f.currency, model.rates, upTo);
+  }
+  return total;
+}
+
+// Latest date on or before asOf that has a value for the account (or null).
+export function lastValueDate(model, accountId, asOf) {
+  let last = null;
+  for (const v of model.broker_values) {
+    if (live(v) && v.account_id === accountId && v.date <= asOf && (!last || last < v.date)) last = v.date;
+  }
+  return last;
+}
+
+// ---------- currency split ----------
+// Native total per currency (EUR in euro, USD in dollars...), plus the RON equivalent; gold is its own line.
+export function currencyBreakdown(model, asOf) {
+  const native = new Map();
+  const add = (k, minor) => native.set(k, (native.get(k) || 0) + minor);
+  for (const c of brokerCells(model, asOf)) add(c.currency, c.value);
+  for (const d of model.deposits) if (depositIncluded(d, asOf)) add(d.currency, d.principal_minor);
+  const acc = new Map(model.accounts.map((a) => [a.id, a]));
+  for (const b of latestBy(model.balances, (r) => r.account_id, asOf).values()) {
+    const a = acc.get(b.account_id);
+    if (a) add(a.currency_default, b.balance_minor);
+  }
+  const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
+  for (const it of model.physical_items) {
+    if (!live(it) || it.purchase_date > asOf) continue;
+    const v = pv.get(it.id);
+    if (it.kind === 'gold') add('AUR', v ? v.value_minor : it.purchase_value_minor || 0);
+    else add(it.currency, v ? v.value_minor : 0);
+  }
+  return [...native.entries()].filter(([, n]) => n !== 0).map(([currency, n]) => ({
+    currency, native: n, ron: currency === 'AUR' ? n : toRon(n, currency, model.rates, asOf),
+  })).sort((a, b) => b.ron - a.ron);
 }

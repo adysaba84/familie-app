@@ -162,3 +162,63 @@ test('staleAccounts: older than 30 days or never recorded', () => {
   eq(staleAccounts(model, '2026-04-10').map((x) => x.account.id).sort(), ['bt-cur', 'sav', 'xtb']);
 });
 test('staleAccounts: exactly 30 days is not stale', () => eq(staleAccounts({ ...model, accounts: [model.accounts[2]] }, '2026-04-09').length, 0));
+
+// ---- M3 additions ----
+import {
+  addDays, investedByInstrument, brokerGroups, brokerSeries, accountValueRon, accountNetFlowsRon, lastValueDate, currencyBreakdown,
+} from '../js/calc.js';
+import { formatWhole } from '../js/money.js';
+
+test('addDays', () => { eq(addDays('2026-03-01', -1), '2026-02-28'); eq(addDays('2026-12-31', 1), '2027-01-01'); });
+test('formatWhole', () => { eq(formatWhole(53492049), '534.920'); eq(formatWhole(-150), '-2'); eq(formatWhole(0), '0'); eq(formatWhole(-10), '0'); });
+
+const m3 = {
+  ...model,
+  broker_flows: [
+    { date: '2026-01-10', account_id: 'xtb', currency: 'EUR', instrument: 'stocks_etf', amount_minor: 100000, direction: 'in' },
+    { date: '2026-02-01', account_id: 'xtb', currency: 'EUR', instrument: 'bonds', amount_minor: 40000, direction: 'in' },
+    { date: '2026-02-10', account_id: 'xtb', currency: 'EUR', instrument: 'stocks_etf', amount_minor: 10000, direction: 'out' },
+  ],
+  broker_values: [{ date: '2026-02-28', account_id: 'xtb', currency: 'EUR', instrument: 'stocks_etf', value_minor: 95000 }],
+};
+test('investedByInstrument: instrument split, missing instrument counts as stocks_etf', () => {
+  const i = investedByInstrument([...m3.broker_flows, { date: '2026-03-01', account_id: 'xtb', currency: 'EUR', amount_minor: 500, direction: 'in' }]);
+  eq(i.get('xtb|EUR|stocks_etf'), 90500); eq(i.get('xtb|EUR|bonds'), 40000);
+});
+test('bonds without a value row stay at investment value', () => {
+  const g = brokerGroups(m3, '2026-03-31', 'platform')[0];
+  eq(g.invested, 130000); eq(g.value, 95000 + 40000); eq(g.gain, 5000);
+});
+test('a bond value row overrides the invested default', () => {
+  const m = { ...m3, broker_values: [...m3.broker_values, { date: '2026-03-01', account_id: 'xtb', currency: 'EUR', instrument: 'bonds', value_minor: 41000 }] };
+  eq(brokerGroups(m, '2026-03-31', 'platform')[0].value, 95000 + 41000);
+});
+test('brokerGroups by instrument is in RON, by currency is native', () => {
+  const ins = brokerGroups(m3, '2026-03-31', 'instrument');
+  eq(ins.map((g) => g.key), ['bonds', 'stocks_etf']); eq(ins[0].currency, 'RON');
+  eq(ins[0].value, toRon(40000, 'EUR', rates, '2026-03-31'));
+  const cur = brokerGroups(m3, '2026-03-31', 'currency');
+  eq(cur.length, 1); eq(cur[0].currency, 'EUR');
+});
+test('gainPctBp = gain / invested in basis points', () => eq(brokerGroups(m3, '2026-03-31', 'platform')[0].gainPctBp, 385));
+test('brokerSummary agrees with the groups (bonds at cost)', () => {
+  const s = brokerSummary(m3, '2026-03-31');
+  eq(s.rows.length, 1); eq(s.rows[0].value, 135000);
+  eq(s.valueRon, toRon(135000, 'EUR', rates, '2026-03-31'));
+});
+test('brokerSeries: 12 points, last is today, values follow the dates', () => {
+  const s = brokerSeries(m3, '2026-03-31', 12);
+  eq(s.length, 12); eq(s[11].date, '2026-03-31'); eq(s[0].investedRon, 0);
+  eq(s[11].investedRon, toRon(130000, 'EUR', rates, '2026-03-31'));
+});
+test('accountValueRon / accountNetFlowsRon / lastValueDate', () => {
+  eq(accountValueRon(m3, 'xtb', '2026-03-31'), toRon(95000, 'EUR', rates, '2026-03-31'));
+  eq(accountNetFlowsRon(m3, 'xtb', '2026-01-31', '2026-02-28'), toRon(40000 - 10000, 'EUR', rates, '2026-02-28'));
+  eq(lastValueDate(m3, 'xtb', '2026-03-31'), '2026-02-28'); eq(lastValueDate(m3, 'xtb', '2026-01-01'), null);
+});
+test('currencyBreakdown adds up to the category total (gold as its own line)', () => {
+  const b = currencyBreakdown(model, '2026-03-31');
+  eq(b.reduce((s, x) => s + x.ron, 0), totalsByCategory(model, '2026-03-31').total);
+  eq(b.find((x) => x.currency === 'AUR').native, 600000);
+  eq(b[0].ron >= b[b.length - 1].ron, true);
+});
