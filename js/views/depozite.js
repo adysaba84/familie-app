@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { depositRows, totalsByCategory, netInterestPerMonthRon, maturityBuckets, bfgByBankOwner, maturityConcentration } from '../calc.js';
+import { depositRows, depositTotalsByCurrency, totalsByCategory, netInterestPerMonthRon, maturityBuckets, bfgByBankOwner, maturityConcentration } from '../calc.js';
 import { formatWhole, formatPercent } from '../money.js';
 import { maturityBars } from '../charts.js';
 import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, fullDate, whenText, eurApprox } from '../ui.js';
@@ -23,6 +23,7 @@ export async function depoziteView(app) {
     const buckets = maturityBuckets(m.deposits, m.rates, today, 12);
     const bfg = bfgByBankOwner(m, today);
     const conc = maturityConcentration(m, today);
+    const byCcy = depositTotalsByCurrency(m, today);
     const canEdit = app.canEdit();
     const space = app.space;
 
@@ -69,6 +70,13 @@ export async function depoziteView(app) {
           maturityBars(buckets),
           conc && conc.shareBp > 5000
             ? h('span', { class: 'sm neg' }, `${Math.round(conc.shareBp / 100)}% scade în ${MONTH_NAME[Number(conc.month.slice(5, 7)) - 1]} ${conc.month.slice(0, 4)}, toate deodată`) : null),
+        byCcy.length ? h('section', { class: 'panel' },
+          h('span', { class: 'up' }, 'Total pe valută'),
+          h('div', { class: 'stat3', style: `grid-template-columns:repeat(${byCcy.length},minmax(0,1fr))` },
+            ...byCcy.map((g) => h('div', {},
+              h('span', { class: 'up xs' }, g.currency === 'RON' ? 'Lei' : g.currency === 'EUR' ? 'Euro' : g.currency === 'USD' ? 'Dolari' : g.currency),
+              h('b', { style: 'font-size:14px' }, fmtNative(g.native, g.currency, { unit: true })),
+              h('span', { class: 'xs muted' }, g.currency === 'RON' ? `${g.count} ${g.count === 1 ? 'depozit' : 'depozite'}` : `≈ ${lei(g.ron)} lei · ${g.count}`))))) : null,
         bfg.length ? h('section', { class: 'panel' },
           h('span', { class: 'up' }, 'Garantat BFG · 100.000 € / bancă / persoană'),
           ...bfg.map((b) => h('div', { style: 'display:flex;flex-direction:column;gap:4px' },

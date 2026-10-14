@@ -444,3 +444,16 @@ export function accountBalance(model, accountId, asOf) {
     history: rows.map((r) => ({ date: r.date, value: r.balance_minor })),
   };
 }
+
+// Active deposits summed per currency in their own currency (+ RON equivalent and count), RON, EUR, USD first.
+export function depositTotalsByCurrency(model, asOf) {
+  const by = new Map();
+  for (const d of model.deposits) {
+    if (!depositIncluded(d, asOf) || d.status !== 'active') continue;
+    const g = by.get(d.currency) || { currency: d.currency, native: 0, ron: 0, count: 0 };
+    g.native += d.principal_minor; g.ron += toRon(d.principal_minor, d.currency, model.rates, asOf); g.count++;
+    by.set(d.currency, g);
+  }
+  const rank = (c) => ['RON', 'EUR', 'USD'].indexOf(c);
+  return [...by.values()].sort((a, b) => (rank(a.currency) < 0 ? 9 : rank(a.currency)) - (rank(b.currency) < 0 ? 9 : rank(b.currency)));
+}

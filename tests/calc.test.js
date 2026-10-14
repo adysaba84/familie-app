@@ -299,3 +299,17 @@ test('accountBalance: same day, the later created_at wins (wallet rows come from
   ] };
   eq(accountBalance(mm, 'w', '2026-03-31').balance, 200);
 });
+
+import { depositTotalsByCurrency } from '../js/calc.js';
+test('depositTotalsByCurrency: native sum, RON equivalent and count per currency', () => {
+  const m = { ...model, deposits: [
+    ...model.deposits, // d1 RON 10 000,00 (2026-01-15..2027-01-15), d2 EUR 2 000,00
+    { id: 'd3', account_id: 'bt-c', currency: 'EUR', principal_minor: 50000, rate_bp: 100, term_months: 12, start_date: '2026-02-01', maturity_date: '2027-02-01', status: 'active' },
+    { id: 'd4', account_id: 'bt-c', currency: 'USD', principal_minor: 30000, rate_bp: 300, term_months: 12, start_date: '2026-02-01', maturity_date: '2027-02-01', status: 'active', void: true },
+  ] };
+  const t = depositTotalsByCurrency(m, '2026-03-31');
+  eq(t.map((x) => x.currency), ['RON', 'EUR']); // the void USD one is left out
+  eq(t[0].native, 1000000); eq(t[0].count, 1);
+  eq(t[1].native, 250000); eq(t[1].count, 2);
+  eq(t[1].ron, toRon(250000, 'EUR', rates, '2026-03-31'));
+});
