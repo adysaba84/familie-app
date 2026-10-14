@@ -27,6 +27,8 @@ if (params.get('empty') !== '1') {
     model.broker_values.push(stamp({ date: d, account_id: tv.id, currency: 'RON', instrument: 'stocks_etf', value_minor: 500000 * (Math.floor(k / 2) + 1) + k * 31000 }));
   }
   model.broker_flows.push(stamp({ date: '2026-02-01', account_id: tv.id, currency: 'EUR', instrument: 'bonds', amount_minor: 1000000, direction: 'in' }));
+  model.broker_flows.push(stamp({ date: '2026-02-01', account_id: tv.id, currency: 'RON', instrument: 'bonds', amount_minor: 2500000, direction: 'in' }));
+  model.broker_values.push(stamp({ date: '2026-10-14', account_id: tv.id, currency: 'RON', instrument: 'cash', value_minor: 821 }));
   model.broker_flows.push(stamp({ date: '2026-03-01', account_id: rev.id, currency: 'EUR', instrument: 'stocks_etf', amount_minor: 26700, direction: 'in' }));
   model.broker_values.push(stamp({ date: '2026-09-03', account_id: rev.id, currency: 'EUR', instrument: 'stocks_etf', value_minor: 26400 }));
   const btC = model.accounts.find((a) => a.kind === 'deposit_bank' && a.institution === 'BT');

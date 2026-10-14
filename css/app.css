@@ -144,3 +144,7 @@ label.f{display:flex;flex-direction:column;gap:6px}
 .tab3.dash{border-style:dashed}
 .acctrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:9px 14px;border-bottom:1px solid var(--line2);font-size:13px}
 .acctrow:last-child{border-bottom:0}
+
+.tbl .r.sub{padding-top:6px;padding-bottom:6px;font-size:12px;background:#FAFBFA}
+.tbl .r.sub .nm{padding-left:14px}
+.tbl .r.sub .nm span{font-weight:400}

@@ -272,5 +272,5 @@ test('brokerGroups instrumentCcy: instrument x currency in native amounts, with 
 });
 test('brokerGroups platform: parts split the row by instrument', () => {
   const g = brokerGroups(m3, '2026-03-31', 'platform')[0];
-  eq(g.parts.map((p) => [p.instrument, p.value]), [['bonds', 40000], ['stocks_etf', 95000]]);
+  eq(g.parts.map((p) => [p.instrument, p.value]), [['stocks_etf', 95000], ['bonds', 40000]]);
 });

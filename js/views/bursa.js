@@ -22,7 +22,7 @@ export async function bursaView(app) {
     // sub-line: what the row is made of, with amounts in the row's own currency
     const parts = (g) => g.parts.map((p) => `${INSTRUMENT_LABEL[p.instrument].toLowerCase()} ${fmtNative(p.value, g.currency, { unit: g.currency !== 'RON' })}`).join(' · ');
     const label = (g) => {
-      if (by === 'platform') return [`${g.account ? g.account.institution : '?'} · ${g.currency}`, parts(g) + (g.account ? ' · ' + g.account.owner : '')];
+      if (by === 'platform') return [`${g.account ? g.account.institution : '?'} · ${g.currency}`, g.parts.length > 1 ? (g.account ? g.account.owner : '') : parts(g) + (g.account ? ' · ' + g.account.owner : '')];
       if (by === 'instrumentCcy') return [`${INSTRUMENT_LABEL[g.instrument] || g.instrument} · ${g.currency}`, g.platforms.join(', ')];
       return [g.key, parts(g)];
     };
@@ -32,14 +32,24 @@ export async function bursaView(app) {
       ? h('p', { class: 'muted', style: 'padding:14px' }, 'Nicio sumă introdusă încă. Începe cu „Sumă investită”.')
       : h('div', { class: 'tbl' },
         h('div', { class: 'h' }, h('span', {}, TABS.find((t) => t[0] === by)[1]), h('span', { style: 'text-align:right' }, 'Investit'), h('span', { style: 'text-align:right' }, 'Valoare'), h('span', { style: 'text-align:right' }, '%')),
-        ...rows.map((g) => {
+        ...rows.flatMap((g) => {
           const [name, sub] = label(g);
           const sd = staleDays(g);
           const old = sd != null && sd > STALE_DAYS;
-          return h('div', { class: 'r' },
+          const gainCls = (gain) => (gain < 0 ? 'neg' : gain > 0 ? 'pos' : 'muted');
+          const main = h('div', { class: 'r' },
             h('span', { class: 'nm' }, h('b', {}, name), h('span', { class: 'xs ' + (old ? 'neg' : 'muted') }, old ? `valoare veche: ${sd} zile` : sub)),
             h('span', { class: 'n' }, fmtNative(g.invested, g.currency)), h('span', { class: 'n' }, fmtNative(g.value, g.currency)),
-            h('span', { class: 'n ' + (g.gain < 0 ? 'neg' : g.gain > 0 ? 'pos' : 'muted') }, g.gainPctBp == null ? '–' : pctText(g.gainPctBp).replace('%', '')));
+            h('span', { class: 'n ' + gainCls(g.gain) }, g.gainPctBp == null ? '–' : pctText(g.gainPctBp).replace('%', '')));
+          // platform rows that hold several instruments get one indented row per instrument
+          const subs = by === 'platform' && g.parts.length > 1 ? g.parts.map((p) => {
+            const bp = p.invested > 0 ? Math.round(((p.value - p.invested) * 10000) / p.invested) : null;
+            return h('div', { class: 'r sub' },
+              h('span', { class: 'nm' }, h('span', {}, INSTRUMENT_LABEL[p.instrument])),
+              h('span', { class: 'n' }, fmtNative(p.invested, g.currency)), h('span', { class: 'n' }, fmtNative(p.value, g.currency)),
+              h('span', { class: 'n ' + gainCls(p.value - p.invested) }, bp == null ? '–' : pctText(bp).replace('%', '')));
+          }) : [];
+          return [main, ...subs];
         }));
 
     frame(app, {

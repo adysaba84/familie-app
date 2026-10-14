@@ -3,6 +3,7 @@ import { roundDiv } from './money.js';
 // PURE functions (no DOM, no fetch): every number on screen comes from here.
 // Dates are ISO strings 'YYYY-MM-DD'; money is integer minor units; rates are x10 000 RON per unit.
 
+const INSTR_ORDER = ['stocks_etf', 'bonds', 'cash'];
 export const BFG_LIMIT_EUR_MINOR = 100000 * 100;
 export const STALE_DAYS = 30;
 export const INTEREST_TAX_BP = 1000; // 10% on deposit interest
@@ -304,7 +305,7 @@ export function brokerGroups(model, asOf, by) {
   }
   return [...groups.values()].map((g) => ({
     ...g, instruments: [...g.instruments].sort(), platforms: [...g.platforms].sort(),
-    parts: [...g.parts.entries()].map(([instrument, v]) => ({ instrument, ...v })).sort((x, y) => (x.instrument < y.instrument ? -1 : 1)),
+    parts: [...g.parts.entries()].map(([instrument, v]) => ({ instrument, ...v })).sort((x, y) => INSTR_ORDER.indexOf(x.instrument) - INSTR_ORDER.indexOf(y.instrument)),
     gain: g.value - g.invested,
     gainPctBp: g.invested > 0 ? roundDiv((g.value - g.invested) * 10000, g.invested) : null,
   })).sort((a, b) => (a.key < b.key ? -1 : 1));
