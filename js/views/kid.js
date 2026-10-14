@@ -1,6 +1,7 @@
 import { h, mount } from '../dom.js';
 import { izaBoxes, projectIza, lastUpdate } from '../iza-plan.js';
-import { formatWhole } from '../money.js';
+import { formatWhole, formatMinor, parseAmount } from '../money.js';
+import { accountBalance } from '../calc.js';
 import { fullDate } from '../ui.js';
 
 // Iza's screen: playful, read-only, one page. Shown to Iza when she signs in (her file is read-only for
@@ -15,6 +16,49 @@ function exportPdf() {
   document.title = 'Banii tăi pentru viitor';
   window.addEventListener('afterprint', () => { document.title = old; }, { once: true });
   window.print();
+}
+
+// "Portofelul tău": the two wallets (lei, euro). Iza can type the amounts herself, but only when Google lets her
+// write her file's `wallet_balances` tab (she is an editor with every other tab protected); a parent previewing
+// sees the numbers read-only.
+function walletSection(app, model, canWrite) {
+  const today = app.today();
+  const isCard = (a) => a.kind === 'current' && a.institution === 'Card';
+  const rank = (a) => (isCard(a) ? 2 : a.currency_default === 'RON' ? 0 : 1);
+  const wallets = model.accounts.filter((a) => !a.void && (a.kind === 'wallet' || isCard(a)) && a.status !== 'closed').sort((a, b) => rank(a) - rank(b));
+  if (!wallets.length) return null;
+  const label = (a) => (isCard(a) ? 'Card' : a.currency_default === 'RON' ? 'Lei' : a.currency_default === 'EUR' ? 'Euro' : a.currency_default);
+  const unit = (a) => (a.currency_default === 'RON' ? 'lei' : a.currency_default === 'EUR' ? '€' : a.currency_default);
+  const rows = wallets.map((a) => ({ a, b: accountBalance(model, a.id, today) }));
+  const err = h('p', { class: 'err small', style: 'margin:6px 0 0' });
+  const inputs = new Map();
+  const save = async (e) => {
+    const todo = [];
+    for (const { a } of rows) {
+      const t = inputs.get(a.id).value.trim();
+      if (!t) continue;
+      const v = parseAmount(t);
+      if (v == null || v < 0) { err.textContent = `Suma de la „${label(a)}” nu e bună.`; return; }
+      todo.push({ a, v });
+    }
+    if (!todo.length) { err.textContent = 'Scrie cel puțin o sumă.'; return; }
+    e.target.disabled = true;
+    try {
+      for (const { a, v } of todo) await app.add('iza', 'wallet_balances', { account_id: a.id, date: today, balance_minor: v, rate_bp: '' }, label(a));
+      app.rerender();
+    } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva. Încearcă din nou.'; }
+  };
+  return h('section', { class: 'box' },
+    h('div', { class: 'between' }, h('b', {}, 'Portofel și card'), h('span', { class: 'xs muted' }, rows.some((r) => r.b.date) ? 'ultima oară ' + fullDate(rows.map((r) => r.b.date).filter(Boolean).sort().pop()) : '')),
+    h('p', {}, canWrite ? 'Scrie câți bani ai acum în portofel și pe card.' : 'Banii pe care îi ai la tine și pe card.'),
+    ...rows.map(({ a, b }) => {
+      if (!canWrite) return h('div', { class: 'between', style: 'margin-top:6px' }, h('span', {}, label(a)), h('b', { class: 'amt' }, b.balance == null ? '–' : `${formatWhole(b.balance)} ${unit(a)}`));
+      const input = h('input', { class: 'input', inputmode: 'decimal', 'aria-label': isCard(a) ? 'Card' : `Portofel ${label(a)}`, placeholder: b.balance == null ? '0' : formatMinor(b.balance) });
+      input.addEventListener('input', () => { err.textContent = ''; });
+      inputs.set(a.id, input);
+      return h('label', { class: 'f', style: 'margin-top:8px' }, `${label(a)} (${unit(a)})`, input);
+    }),
+    canWrite ? [err, h('button', { style: 'margin-top:10px;width:100%', onclick: save }, 'Actualizează')] : null);
 }
 
 export async function kidView(app, { asParent = false } = {}) {
@@ -47,6 +91,7 @@ export async function kidView(app, { asParent = false } = {}) {
       h('div', { class: 'hero-col' }, h('span', { class: 'k' }, age == null ? 'Acum' : `Acum · ${age} ani`), h('span', { class: 'v' }, eur(boxes.totalEur))),
       plan && plan.atAdult ? [h('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
         h('div', { class: 'hero-col' }, h('span', { class: 'k' }, `La ${plan.params.adultAge} ani · estimare`), h('span', { class: 'v' }, approx(plan.atAdult.eur)))] : null),
+    walletSection(app, model, !asParent && app.canEdit('iza')),
     h('h2', { class: 'kidh2' }, 'Unde sunt banii tăi'),
     h('p', { class: 'kidlead' }, 'Banii nu stau toți într-un singur loc. Sunt împărțiți în „cutii”, fiecare cu rolul ei.'),
     ...boxes.boxes.filter((b) => b.eur > 0).map((b) => h('section', { class: 'box' },

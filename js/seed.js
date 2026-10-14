@@ -18,6 +18,6 @@ export const SEED = {
   iza: [
     a('broker', 'Tradeville', 'Iza'), a('deposit_bank', 'BT', 'Iza'),
     a('savings', 'KID', 'Iza', 'RON', 'KID cont'),
-    a('wallet', 'Portofel', 'Iza', 'RON', 'Portofel · Iza · RON'), a('wallet', 'Portofel', 'Iza', 'EUR', 'Portofel · Iza · EUR'),
+    a('current', 'Card', 'Iza', 'RON', 'Card · Iza'), a('wallet', 'Portofel', 'Iza', 'RON', 'Portofel · Iza · RON'), a('wallet', 'Portofel', 'Iza', 'EUR', 'Portofel · Iza · EUR'),
   ],
 };

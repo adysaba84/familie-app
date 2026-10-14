@@ -38,6 +38,8 @@ export async function loadModel(fileId) {
   const model = {};
   for (const t of TAB_NAMES) model[t] = [];
   present.forEach((t, i) => { model[t] = parseTable(tables[i]); });
+  // Iza's own wallet entries live in their own tab (the only one she may write); calculations see them as balances
+  model.balances = model.balances.concat(model.wallet_balances.map((r) => ({ ...r, _tab: 'wallet_balances' })));
   return model;
 }
 
@@ -49,17 +51,19 @@ function auditRow(action, tab, rowId, summary) {
 export async function addRecord(fileId, tab, fields, summary = '') {
   const rec = { id: crypto.randomUUID(), ...fields, created_by: currentEmail(), created_at: nowIso(), void: false, void_reason: '' };
   await appendRows(fileId, tab, [toRow(tab, rec)]);
-  await appendRows(fileId, 'audit', [auditRow('add', tab, rec.id, summary)]);
+  // Iza cannot write `audit`; her entries carry created_by instead
+  if (tab !== 'wallet_balances') await appendRows(fileId, 'audit', [auditRow('add', tab, rec.id, summary)]);
   return rec;
 }
 
 // Marks a record void (never deletes). `rec` must come from loadModel so it has its sheet row.
-export async function voidRecord(fileId, tab, rec, reason = '') {
+export async function voidRecord(fileId, tabIn, rec, reason = '') {
+  const tab = rec._tab || tabIn; // a merged wallet row is voided in its own tab
   const cols = TABS[tab];
   const voidCol = columnLetter(cols.indexOf('void') + 1);
   const reasonCol = columnLetter(cols.indexOf('void_reason') + 1);
   await updateRange(fileId, `${tab}!${voidCol}${rec._row}:${reasonCol}${rec._row}`, [['1', reason]]);
-  await appendRows(fileId, 'audit', [auditRow('void', tab, rec.id, reason)]);
+  if (tab !== 'wallet_balances') await appendRows(fileId, 'audit', [auditRow('void', tab, rec.id, reason)]);
 }
 
 // Adds several records of one tab in a single request (one audit row for the whole batch).

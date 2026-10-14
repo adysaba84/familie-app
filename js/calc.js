@@ -435,7 +435,7 @@ export function safeCash(model, asOf) {
 // Latest balance, its date, the age in days, and the current rate for one account.
 export function accountBalance(model, accountId, asOf) {
   const rows = model.balances.filter((b) => live(b) && b.account_id === accountId && b.date <= asOf)
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a._row || 0) - (b._row || 0)));
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.created_at || '') < (b.created_at || '') ? -1 : (a.created_at || '') > (b.created_at || '') ? 1 : (a._row || 0) - (b._row || 0)));
   const last = rows[rows.length - 1];
   const withRate = [...rows].reverse().find((r) => r.rate_bp != null);
   return {

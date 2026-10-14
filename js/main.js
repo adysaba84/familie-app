@@ -81,7 +81,7 @@ const guard = (fn) => () => {
 
 const routes = {
   '/': guard(() => router.go(files && files.role ? '/active' : '/setup')),
-  '/setup': guard(() => showSetup()),
+  '/setup': guard(() => (files && files.role === 'kid' ? router.go('/active') : showSetup())), // Iza goes straight to her screen
 };
 for (const [path, view] of Object.entries(SCREENS)) {
   routes[path] = guard(() => {

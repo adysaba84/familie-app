@@ -291,3 +291,11 @@ test('totalsByCategory: insurance is its own category, not mixed into accounts',
   eq(mc.reduce((s, x) => s + x.byCategory.insurance, 0), 5000000);
   for (const x of mc) eq(Object.values(x.byCategory).reduce((a, b) => a + b, 0), x.delta);
 });
+
+test('accountBalance: same day, the later created_at wins (wallet rows come from another tab)', () => {
+  const mm = { ...model, balances: [
+    { account_id: 'w', date: '2026-03-01', balance_minor: 100, created_at: '2026-03-01T10:00:00Z', _row: 9 },
+    { account_id: 'w', date: '2026-03-01', balance_minor: 200, created_at: '2026-03-01T12:00:00Z', _row: 2, _tab: 'wallet_balances' },
+  ] };
+  eq(accountBalance(mm, 'w', '2026-03-31').balance, 200);
+});
