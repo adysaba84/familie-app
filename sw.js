@@ -1,6 +1,6 @@
 // Caches the app shell only. Never touches cross-origin requests, so no Google API
 // response (i.e. no financial data) is ever stored on the device.
-const CACHE = 'fa-shell-v4';
+const CACHE = 'fa-shell-v5';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/main.js', 'js/config.js', 'js/dom.js', 'js/auth.js', 'js/picker.js', 'js/sheets.js',
@@ -24,12 +24,12 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Network first (so updates arrive), cache as the offline fallback.
+// Network first (so updates arrive immediately), cache as the offline fallback.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' }) // revalidate with the server every time: GitHub Pages lets browsers keep files for 10 minutes
       .then((res) => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
         return res;
