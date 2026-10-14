@@ -45,3 +45,25 @@ export async function createSpreadsheet(title) {
   });
   return res.spreadsheetId;
 }
+
+// ---- values API (used by store.js) ----
+export async function batchGet(id, tabs) {
+  const qs = tabs.map((t) => 'ranges=' + enc(t)).join('&');
+  const r = await api(`https://sheets.googleapis.com/v4/spreadsheets/${enc(id)}/values:batchGet?${qs}&valueRenderOption=UNFORMATTED_VALUE`);
+  return r.valueRanges.map((v) => v.values || []);
+}
+
+// Appends rows at the end of a tab. Append-only: the app never deletes a row.
+export function appendRows(id, tab, rows) {
+  return api(
+    `https://sheets.googleapis.com/v4/spreadsheets/${enc(id)}/values/${enc(tab)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    { method: 'POST', body: JSON.stringify({ values: rows }) },
+  );
+}
+
+export function updateRange(id, range, rows) {
+  return api(
+    `https://sheets.googleapis.com/v4/spreadsheets/${enc(id)}/values/${enc(range)}?valueInputOption=RAW`,
+    { method: 'PUT', body: JSON.stringify({ values: rows }) },
+  );
+}
