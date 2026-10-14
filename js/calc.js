@@ -193,7 +193,7 @@ export function totalsByCategory(model, asOf) {
   let physical = 0;
   const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
   for (const it of model.physical_items) {
-    if (!live(it) || it.purchase_date > asOf) continue;
+    if (!live(it) || it.purchase_date > asOf || !['gold', 'cash'].includes(it.kind)) continue; // property is its own thing (situations)
     const v = pv.get(it.id);
     physical += it.kind === 'gold'
       ? (v ? v.value_minor : it.purchase_value_minor || 0)
@@ -367,7 +367,7 @@ export function currencyBreakdown(model, asOf) {
   }
   const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
   for (const it of model.physical_items) {
-    if (!live(it) || it.purchase_date > asOf) continue;
+    if (!live(it) || it.purchase_date > asOf || !['gold', 'cash'].includes(it.kind)) continue;
     const v = pv.get(it.id);
     if (it.kind === 'gold') add('AUR', v ? v.value_minor : it.purchase_value_minor || 0);
     else add(it.currency, v ? v.value_minor : 0);

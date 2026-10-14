@@ -61,6 +61,8 @@ function showSetup(message, busy = false) {
       }
     },
     onCreate: async () => {
+      // creating files is for the very first setup only; anyone else would end up with empty look-alike files
+      if (!window.confirm('Asta creează fișiere NOI și GOALE în Drive-ul tău. Dacă fișierele „FIN · …” există deja (partajate cu tine), NU continua: apasă Anulează și folosește „Alege fișierele”. Continui cu crearea?')) return;
       showSetup({ text: 'Se creează fișierele…' }, true);
       try {
         await createSpreadsheet(FILE_NAMES.parents);

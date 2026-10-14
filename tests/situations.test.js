@@ -1,0 +1,92 @@
+import { test, eq, ok } from './harness.js';
+import { situation, combine, comparisonDates, historyStart, LAYERS } from '../js/situations.js';
+
+// Invented family (round numbers): EUR = 5 RON, USD = 4 RON.
+const rates = [{ date: '2026-01-01', EUR: 50000, USD: 40000 }];
+const acc = (id, kind, ccy = 'RON') => ({ id, kind, institution: 'X', owner: 'Y', name: id, currency_default: ccy, status: 'active' });
+const model = {
+  accounts: [acc('cur', 'current'), acc('wal', 'wallet', 'EUR'), acc('sav', 'savings'), acc('ins', 'insurance'), acc('card', 'card'),
+    acc('pen', 'pension'), acc('loan', 'loan', 'EUR'), acc('tv', 'broker')],
+  settings: [{ key: 'card_limit:card', value: '100000' }],
+  rates,
+  balances: [
+    { account_id: 'cur', date: '2026-09-30', balance_minor: 100000 }, { account_id: 'wal', date: '2026-09-30', balance_minor: 20000 },
+    { account_id: 'sav', date: '2026-09-30', balance_minor: 50000 }, { account_id: 'ins', date: '2026-09-30', balance_minor: 200000 },
+    { account_id: 'card', date: '2026-09-30', balance_minor: 80000 }, { account_id: 'pen', date: '2026-09-30', balance_minor: 1000000 },
+    { account_id: 'loan', date: '2026-09-30', balance_minor: 10000 },
+  ],
+  deposits: [
+    { id: 'd1', account_id: 'sav', currency: 'RON', principal_minor: 100000, status: 'active', start_date: '2026-01-01', maturity_date: '2027-01-01' },
+    { id: 'd2', account_id: 'sav', currency: 'USD', principal_minor: 10000, status: 'active', start_date: '2026-01-01', maturity_date: '2027-01-01' },
+    { id: 'd3', account_id: 'sav', currency: 'RON', principal_minor: 999, status: 'active', start_date: '2026-01-01', maturity_date: '2027-01-01', void: true },
+  ],
+  physical_items: [
+    { id: 'g', kind: 'gold', currency: 'RON', purchase_value_minor: 400000, purchase_date: '2026-01-01' },
+    { id: 'c', kind: 'cash', currency: 'EUR', purchase_date: '2026-01-01' },
+    { id: 'h', kind: 'property', currency: 'EUR', purchase_date: '2026-01-01' },
+    { id: 'car', kind: 'vehicle', currency: 'EUR', purchase_date: '2026-01-01' },
+  ],
+  physical_values: [
+    { item_id: 'g', date: '2026-09-30', value_minor: 500000 }, { item_id: 'c', date: '2026-09-30', value_minor: 10000 },
+    { item_id: 'h', date: '2026-09-30', value_minor: 2000000 }, { item_id: 'car', date: '2026-09-30', value_minor: 500000 },
+  ],
+  broker_flows: [], broker_values: [{ date: '2026-09-30', account_id: 'tv', currency: 'RON', instrument: 'stocks_etf', value_minor: 300000 }],
+};
+const line = (layer, key) => layer.lines.find((l) => l.key === key).ron;
+
+test('situation: DISPONIBIL is cash only (accounts, wallets, savings, deposits, safe cash, insurance, cards net)', () => {
+  const s = situation(model, '2026-10-14');
+  eq(line(s.disponibil, 'conturi'), 200000); // 1.000 lei + wallet 200 euro
+  eq(line(s.disponibil, 'economii'), 50000);
+  eq(line(s.disponibil, 'depozite'), 140000); // 1.000 lei + 100 USD (void one left out)
+  eq(line(s.disponibil, 'seif'), 50000); // 100 euro
+  eq(line(s.disponibil, 'asigurari'), 200000);
+  eq(line(s.disponibil, 'carduri'), -20000); // 800 left of a 1.000 limit: 200 spent
+  eq(s.disponibil.total, 620000);
+});
+test('situation: disponibil keeps the native amount per currency', () => {
+  const n = situation(model, '2026-10-14').disponibil.native;
+  eq(n.RON, 430000); eq(n.EUR, 30000); eq(n.USD, 10000);
+});
+test('situation: BURSĂ ȘI AUR is its own layer (brokers + gold), never in disponibil', () => {
+  const s = situation(model, '2026-10-14');
+  eq(line(s.bursa, 'bursa'), 300000); eq(line(s.bursa, 'aur'), 500000); eq(s.bursa.total, 800000);
+});
+test('situation: INDISPONIBIL = property + pensions + loans given', () => {
+  const s = situation(model, '2026-10-14');
+  eq(line(s.indisponibil, 'imobile'), 12500000); // 20.000 + 5.000 euro
+  eq(line(s.indisponibil, 'pensii'), 1000000);
+  eq(line(s.indisponibil, 'imprumuturi'), 50000); // 100 euro
+  eq(s.indisponibil.total, 13550000);
+});
+test('situation: WEALTH = disponibil + bursă și aur + indisponibil', () => {
+  const s = situation(model, '2026-10-14');
+  eq(s.wealth, 620000 + 800000 + 13550000);
+});
+test('situation: a card without a limit is ignored, a past date sees only what existed then', () => {
+  const noLimit = situation({ ...model, settings: [] }, '2026-10-14');
+  eq(line(noLimit.disponibil, 'carduri'), 0);
+  const jan = situation(model, '2026-01-15');
+  eq(line(jan.disponibil, 'depozite'), 140000); // deposits started on 1 Jan
+  eq(jan.disponibil.total, 140000); eq(jan.bursa.total, 400000); eq(jan.wealth, 540000); // only the deposits and the gold's purchase price existed
+});
+test('situation: property never leaks into the cash or gold layers', () => {
+  const s = situation({ ...model, physical_items: [model.physical_items[2]] }, '2026-10-14');
+  eq(line(s.disponibil, 'seif'), 0); eq(line(s.bursa, 'aur'), 0); eq(line(s.indisponibil, 'imobile'), 10000000);
+});
+test('combine: two spaces add up line by line, native amounts too', () => {
+  const a = situation(model, '2026-10-14');
+  const c = combine([a, a]);
+  eq(c.wealth, a.wealth * 2); eq(c.disponibil.total, a.disponibil.total * 2);
+  eq(line(c.indisponibil, 'imobile'), 25000000); eq(c.disponibil.native.EUR, 60000);
+  eq(combine([]), null);
+});
+test('comparisonDates: end of last month and end of last year', () => {
+  eq(comparisonDates('2026-10-14'), { month: '2026-09-30', year: '2025-12-31' });
+  eq(comparisonDates('2027-01-05'), { month: '2026-12-31', year: '2026-12-31' });
+});
+test('historyStart: the earliest balance / broker / physical date', () => {
+  eq(historyStart(model), '2026-09-30');
+  eq(historyStart({ balances: [], broker_flows: [], broker_values: [], physical_values: [] }), null);
+});
+test('LAYERS lists every line the screen shows', () => ok(LAYERS.disponibil.length === 6 && LAYERS.bursa.length === 2 && LAYERS.indisponibil.length === 3));

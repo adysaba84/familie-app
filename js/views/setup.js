@@ -13,7 +13,7 @@ export function setupView({ email, onCreate, onPick, onSignOut, busy, message })
     ),
     h('div', { class: 'card stack' },
       h('h2', {}, 'Prima configurare (doar Ady)'),
-      h('p', { class: 'muted' }, 'Creează în Drive-ul tău fișierele „FIN · Părinți” și „FIN · Iza”, cu toate foile.'),
+      h('p', { class: 'muted' }, 'Doar dacă fișierele nu există încă: creează în Drive-ul tău fișierele „FIN · Părinți” și „FIN · Iza”, goale. Dacă ți-au fost partajate, folosește „Alege fișierele” de mai sus.'),
       h('button', { class: 'secondary', onclick: onCreate, disabled: busy }, 'Creează fișierele'),
     ),
     message ? h('p', { class: message.error ? 'err' : 'muted' }, message.text) : null,
