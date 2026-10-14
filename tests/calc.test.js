@@ -23,6 +23,9 @@ test('rateOn: before the first rate falls back to the latest, flagged', () => {
   const r = rateOn(rates, 'EUR', '2025-12-01');
   eq(r.fallback, true); eq(r.date, '2026-03-02');
 });
+test('rateOn: same date, the later row wins (a correction)', () => {
+  eq(rateOn([{ date: '2026-02-02', USD: 11192 }, { date: '2026-02-02', USD: 47748 }], 'USD', '2026-02-02').rate, 47748);
+});
 test('rateOn: RON is 1', () => eq(rateOn([], 'RON', '2026-01-01').rate, 10000));
 test('toRon / fromRon', () => { eq(toRon(10000, 'EUR', rates, '2026-02-10'), 51000); eq(fromRon(51000, 'EUR', rates, '2026-02-10'), 10000); eq(toRon(12345, 'RON', rates, '2026-01-01'), 12345); });
 

@@ -36,7 +36,7 @@ export function monthEnd(date) {
 // "curs din <data>"). RON is always 10 000.
 export function rateOn(rates, ccy, date) {
   if (ccy === 'RON') return { rate: 10000, date, fallback: false };
-  const rows = rates.filter((r) => r[ccy] != null).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const rows = rates.filter((r) => r[ccy] != null).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); // same date: later row wins (a correction)
   if (rows.length === 0) throw new Error('no rate for ' + ccy);
   let hit = null;
   for (const r of rows) if (r.date <= date) hit = r;
