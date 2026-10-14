@@ -7,7 +7,8 @@ import { startEdit } from './depozit-nou.js';
 
 const MONTH_NAME = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
 const SHOWN = 4;
-let showAll = false;
+const expanded = new Set(); // currencies whose full list is open
+const CCY_NAME = { RON: 'Lei', EUR: 'Euro', USD: 'Dolari' };
 let open = null; // deposit id whose actions are open
 let confirmVoid = null;
 
@@ -27,14 +28,16 @@ export async function depoziteView(app) {
     const canEdit = app.canEdit();
     const space = app.space;
 
+    // grouped by currency (lei, euro, dolari), each list by maturity (depositRows is already sorted by it)
+    const rank = (c) => (['RON', 'EUR', 'USD'].indexOf(c) < 0 ? 9 : ['RON', 'EUR', 'USD'].indexOf(c));
     const groups = new Map();
     for (const r of rows) {
-      const k = r.account ? `${r.account.institution} · ${r.account.owner}` : 'Fără cont';
+      const k = r.deposit.currency;
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r);
     }
-    let remaining = showAll ? Infinity : SHOWN;
-    const hidden = Math.max(0, rows.length - SHOWN);
+    const ordered = [...groups.entries()].sort((x, y) => rank(x[0]) - rank(y[0]));
+    const showOwner = new Set(rows.map((r) => r.account && r.account.owner)).size > 1;
 
     const depositRow = (r) => {
       const d = r.deposit;
@@ -52,7 +55,7 @@ export async function depoziteView(app) {
       h('span', { class: 'mono', style: 'font-weight:600' }, fmtNative(d.principal_minor, d.currency, { unit: true })),
       h('span', { class: 'mono xs ' + (soon ? 'neg' : ''), style: soon ? 'font-weight:600' : '' },
         soon ? `${shortDate(d.maturity_date)} · ${whenText(r.daysLeft)}` : fullDate(d.maturity_date)),
-      h('span', { class: 'xs muted' }, `${formatPercent(d.rate_bp)} · ${termText(d.term_months)} · ${d.capitalization ? 'cu' : 'fără'} capitalizare`),
+      h('span', { class: 'xs muted' }, `${r.account ? r.account.institution + (showOwner ? ' ' + r.account.owner : '') + ' · ' : ''}${formatPercent(d.rate_bp)} · ${termText(d.term_months)} · ${d.capitalization ? 'cu' : 'fără'} capitalizare`),
       h('span', { class: 'xs pos', style: 'text-align:right' }, `+${formatWhole(r.net)}${d.currency === 'RON' ? '' : ' ' + (d.currency === 'EUR' ? '€' : '$')} net`),
       actions);
     };
@@ -84,13 +87,17 @@ export async function depoziteView(app) {
             h('div', { class: 'bar', style: 'height:6px' }, h('div', { style: `height:6px;width:${Math.min(100, b.pctBp / 100)}%;background:${b.over ? '#B3412E' : '#1F6F5C'}` }))))) : null,
         rows.length === 0 ? h('div', { class: 'card' }, h('p', { class: 'muted', style: 'margin:0' }, 'Niciun depozit activ.'))
           : h('section', { class: 'panel flush' },
-            ...[...groups.entries()].flatMap(([name, list]) => {
-              const visible = list.filter(() => remaining-- > 0);
-              if (!visible.length) return [];
-              return [h('div', { class: 'ghead' }, h('span', {}, name), h('span', {}, 'scadență')), ...visible.map(depositRow)];
-            }),
-            hidden > 0 ? h('button', { class: 'secondary', style: 'border:0;border-top:1px solid var(--line2);border-radius:0 0 12px 12px;width:100%', onclick: () => { showAll = !showAll; app.rerender(); } },
-              showAll ? 'Arată mai puține' : `Încă ${hidden} ${hidden === 1 ? 'depozit' : 'depozite'}`) : null),
+            ...ordered.flatMap(([ccy, list]) => {
+              const open_ = expanded.has(ccy);
+              const visible = open_ ? list : list.slice(0, SHOWN);
+              const more = list.length - SHOWN;
+              return [
+                h('div', { class: 'ghead' }, h('span', {}, `${CCY_NAME[ccy] || ccy} · ${list.length} ${list.length === 1 ? 'depozit' : 'depozite'}`), h('span', {}, 'scadență')),
+                ...visible.map(depositRow),
+                more > 0 ? h('button', { class: 'secondary', style: 'border:0;border-top:1px solid var(--line2);border-radius:0;width:100%', onclick: () => { if (open_) expanded.delete(ccy); else expanded.add(ccy); app.rerender(); } },
+                  open_ ? 'Arată mai puține' : `Încă ${more} ${more === 1 ? 'depozit' : 'depozite'}`) : null,
+              ];
+            })),
         canEdit ? h('a', { class: 'btn big', href: '#/depozite/nou', style: 'margin:16px' }, icon('plus', 18, 2.2), 'Depozit nou') : null,
       ],
     });
