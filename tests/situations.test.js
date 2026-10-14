@@ -68,7 +68,7 @@ test('situation: a card without a limit is ignored, a past date sees only what e
   eq(line(noLimit.disponibil, 'carduri'), 0);
   const jan = situation(model, '2026-01-15');
   eq(line(jan.disponibil, 'depozite'), 140000); // deposits started on 1 Jan
-  eq(jan.disponibil.total, 140000); eq(jan.bursa.total, 400000); eq(jan.wealth, 540000); // only the deposits and the gold's purchase price existed
+  eq(jan.disponibil.total, 140000); eq(jan.bursa.total, 400000); eq(jan.indisponibil.total, 12500000); eq(jan.wealth, 540000 + 12500000); // deposits and the gold's purchase price existed; property counts at every date
 });
 test('situation: property never leaks into the cash or gold layers', () => {
   const s = situation({ ...model, physical_items: [model.physical_items[2]] }, '2026-10-14');
@@ -104,4 +104,12 @@ test('snapshots: Excel totals count only before the group has detailed records, 
   eq(line(situation(m, '2026-10-14').disponibil, 'depozite'), 100000 + 40000); // real deposits only
   eq(snapshotRows(m, '2026-10-14').some((r) => r.group === 'depozite'), false);
   ok(snapshotRows(m, '2026-10-14', { all: true }).some((r) => r.group === 'depozite' && !r.used), 'all=true keeps unused ones, flagged');
+});
+
+test('property counts at every date (house/car/garage existed before they were entered): a comparison never shows it as growth', () => {
+  const m = { ...model, physical_items: model.physical_items.map((i) => ({ ...i, purchase_date: '2026-10-14' })),
+    physical_values: model.physical_values.map((v) => ({ ...v, date: '2026-10-14' })) };
+  const early = line(situation(m, '2025-12-31').indisponibil, 'imobile'), now = line(situation(m, '2026-10-14').indisponibil, 'imobile');
+  eq(early, now); ok(now > 0, 'property is counted');
+  eq(line(situation(m, '2025-12-31').bursa, 'aur'), 0); // gold is not property: still only from its date
 });

@@ -57,7 +57,7 @@ export async function verificareView(app) {
     })));
     const propRows = propertyItems(m, today).map(({ item }) => row(item.description || item.kind, dates.map((d) => {
       const p = propertyItems(m, d).find((x) => x.item.id === item.id);
-      return p && p.item.purchase_date <= d ? money(p.native, item.currency) : null;
+      return p ? money(p.native, item.currency) : null;
     })));
 
     // Excel snapshots (totals copied from the old sheet): "folosit" = counted in the totals at that date

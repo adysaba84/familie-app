@@ -464,11 +464,19 @@ export function depositTotalsByCurrency(model, asOf) {
 // Property-like items (house, car, garage): latest value in its own currency + RON equivalent. Not part of the
 // "Active" totals (they are not financial assets); they live in the indisponibil layer of the situations.
 export const PROPERTY_KINDS = ['property', 'vehicle', 'garage'];
+// Property is not a "new" asset: the house, car and garage existed long before they were entered, so they count at EVERY
+// date (a comparison must not show them as growth). Value = latest on or before asOf, else the earliest one entered.
+export function propertyValue(model, it, asOf) {
+  const vals = model.physical_values.filter((v) => live(v) && v.item_id === it.id)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a._row || 0) - (b._row || 0)));
+  const upTo = vals.filter((v) => v.date <= asOf);
+  const v = upTo.length ? upTo[upTo.length - 1] : vals[0];
+  return v ? v.value_minor : it.purchase_value_minor || 0;
+}
 export function propertyItems(model, asOf) {
-  const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
   return model.physical_items.filter((it) => live(it) && PROPERTY_KINDS.includes(it.kind)).map((it) => {
-    const v = pv.get(it.id);
-    const native = v ? v.value_minor : it.purchase_value_minor || 0;
+    const v = model.physical_values.filter((x) => live(x) && x.item_id === it.id && x.date <= asOf).pop();
+    const native = propertyValue(model, it, asOf);
     return { item: it, native, ron: toRon(native, it.currency, model.rates, asOf), valueDate: v ? v.date : it.purchase_date };
   });
 }

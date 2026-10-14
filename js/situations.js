@@ -1,4 +1,4 @@
-import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS } from './calc.js';
+import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
 
 // "Situații": the family's position in the three layers the Excel uses. PURE (no DOM, no network).
 //   DISPONIBIL   = cash only: current accounts, wallets, vouchers, savings, deposits, cash in the safe,
@@ -106,11 +106,11 @@ export function situation(model, asOf) {
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.created_at || '') < (b.created_at || '') ? -1 : (a.created_at || '') > (b.created_at || '') ? 1 : (a._row || 0) - (b._row || 0)));
   for (const v of values) pv.set(v.item_id, v);
   for (const it of model.physical_items) {
-    if (!live(it) || it.purchase_date > asOf) continue;
+    if (!live(it) || (it.purchase_date > asOf && !PROPERTY_KINDS.includes(it.kind))) continue; // property counts at every date
     const v = pv.get(it.id);
     if (it.kind === 'gold') bump(bursa, 'aur', v ? v.value_minor : it.purchase_value_minor || 0);
     else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; bump(disponibil, 'seif', toRon(n, it.currency, rates, asOf)); addNative(it.currency, n); }
-    else if (PROPERTY_KINDS.includes(it.kind)) bump(indisponibil, 'imobile', toRon(v ? v.value_minor : it.purchase_value_minor || 0, it.currency, rates, asOf));
+    else if (PROPERTY_KINDS.includes(it.kind)) bump(indisponibil, 'imobile', toRon(propertyValue(model, it, asOf), it.currency, rates, asOf));
   }
 
   bump(bursa, 'bursa', brokerSummary(model, asOf).valueRon);
