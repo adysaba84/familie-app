@@ -1,0 +1,4 @@
+# code only: never commit data, exports or secrets
+*.csv
+*.xlsx
+.env
