@@ -1,4 +1,4 @@
-import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths } from './calc.js';
+import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS } from './calc.js';
 
 // "Situații": the family's position in the three layers the Excel uses. PURE (no DOM, no network).
 //   DISPONIBIL   = cash only: current accounts, wallets, vouchers, savings, deposits, cash in the safe,
@@ -9,7 +9,6 @@ import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMon
 // Every number is in RON bani at `asOf` (euro is derived by the caller); disponibil also carries the native amount
 // per currency (lei / euro / dolari), like the Excel's "cash lei / cash eur / cash usd".
 const live = (r) => !r.void;
-const PROPERTY_KINDS = ['property', 'vehicle', 'garage'];
 
 export const LAYERS = {
   disponibil: [

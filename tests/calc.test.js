@@ -313,3 +313,15 @@ test('depositTotalsByCurrency: native sum, RON equivalent and count per currency
   eq(t[1].native, 250000); eq(t[1].count, 2);
   eq(t[1].ron, toRon(250000, 'EUR', rates, '2026-03-31'));
 });
+
+import { propertyItems } from '../js/calc.js';
+test('propertyItems: house/car/garage with their latest value; gold and cash are not property', () => {
+  const m = { ...model,
+    physical_items: [...model.physical_items,
+      { id: 'house', kind: 'property', currency: 'EUR', description: 'H', purchase_date: '2026-01-01' },
+      { id: 'car', kind: 'vehicle', currency: 'EUR', description: 'C', purchase_date: '2026-01-01', void: true }],
+    physical_values: [...model.physical_values, { item_id: 'house', date: '2026-02-01', value_minor: 2000000 }, { item_id: 'house', date: '2026-03-01', value_minor: 2100000 }] };
+  const p = propertyItems(m, '2026-03-31');
+  eq(p.length, 1); eq(p[0].native, 2100000); eq(p[0].ron, toRon(2100000, 'EUR', rates, '2026-03-31'));
+  eq(totalsByCategory(m, '2026-03-31').physical, totalsByCategory(model, '2026-03-31').physical); // property not in Active
+});

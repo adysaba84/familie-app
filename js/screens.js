@@ -10,6 +10,7 @@ import { fiziceNouView } from './views/fizice-nou.js';
 import { conturiView } from './views/conturi.js';
 import { solduriView } from './views/solduri.js';
 import { kidView } from './views/kid.js';
+import { situatiiView } from './views/situatii.js';
 import { maiMultView } from './views/mai-mult.js';
 
 // Parent-facing screens: path -> view(app). Shared by main.js and the offline preview page.
@@ -25,6 +26,7 @@ export const SCREENS = {
   '/conturi': conturiView,
   '/conturi/solduri': solduriView,
   '/iza': (app) => kidView(app, { asParent: true }), // a parent previews Iza's screen
+  '/situatii': situatiiView,
   '/curs': cursView,
   '/mai-mult': maiMultView,
 };

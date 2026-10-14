@@ -3,7 +3,7 @@ import { parseAmount } from '../money.js';
 import { closeHead, frame, guarded, loading } from '../ui.js';
 
 let form = null;
-const fresh = (app) => ({ kind: 'gold', description: '', quantity: '1', amount: '', currency: 'EUR', date: app.today() });
+const fresh = (app) => ({ kind: 'gold', sub: 'property', description: '', quantity: '1', amount: '', currency: 'EUR', date: app.today() });
 
 // "+ Alt obiect": a gold item (purchase value in lei) or a cash currency kept in the safe.
 export async function fiziceNouView(app) {
@@ -27,8 +27,9 @@ export async function fiziceNouView(app) {
       e.target.disabled = true;
       try {
         const gold = form.kind === 'gold';
+        const kind = form.kind === 'property' ? form.sub : form.kind; // house / car / garage
         const item = await app.add(space, 'physical_items', {
-          kind: form.kind, currency: gold ? 'RON' : form.currency, description: form.description.trim(), quantity: q,
+          kind, currency: gold ? 'RON' : form.currency, description: form.description.trim(), quantity: q,
           purchase_value_minor: gold ? v : '', purchase_date: form.date,
         }, form.description.trim());
         // cash: the amount is its first value; gold: the purchase price is the first point of the history
@@ -44,12 +45,15 @@ export async function fiziceNouView(app) {
       body: [
         h('form', { class: 'form', onsubmit: (e) => e.preventDefault() },
           h('fieldset', {}, h('legend', {}, 'Ce adaugi'),
-            h('div', { class: 'opts', style: 'grid-template-columns:repeat(2,minmax(0,1fr))' },
-              opt(form.kind === 'gold', 'Aur', () => set({ kind: 'gold' })), opt(form.kind === 'cash', 'Numerar în seif', () => set({ kind: 'cash' })))),
+            h('div', { class: 'opts', style: 'grid-template-columns:repeat(3,minmax(0,1fr))' },
+              opt(form.kind === 'gold', 'Aur', () => set({ kind: 'gold' })), opt(form.kind === 'cash', 'Numerar', () => set({ kind: 'cash' })), opt(form.kind === 'property', 'Imobil', () => set({ kind: 'property' })))),
+          form.kind === 'property' ? h('fieldset', {}, h('legend', {}, 'Ce fel'),
+            h('div', { class: 'opts', style: 'grid-template-columns:repeat(3,minmax(0,1fr))' },
+              ...[['property', 'Locuință'], ['vehicle', 'Mașină'], ['garage', 'Garaj']].map(([k, t]) => opt(form.sub === k, t, () => set({ sub: k }))))) : null,
           h('label', { class: 'f' }, 'Descriere', desc),
           form.kind === 'gold' ? h('label', { class: 'f' }, 'Cantitate (bucăți)', qty) : h('label', { class: 'f' }, 'Valută',
             h('select', { class: 'input', onchange: (e) => { form.currency = e.target.value; } }, ...['EUR', 'USD', 'RON'].map((c) => h('option', { value: c, selected: c === form.currency }, c)))),
-          h('label', { class: 'f' }, form.kind === 'gold' ? 'Valoare de cumpărare (lei)' : 'Suma în seif', amount),
+          h('label', { class: 'f' }, form.kind === 'gold' ? 'Valoare de cumpărare (lei)' : form.kind === 'property' ? 'Valoare estimată' : 'Suma în seif', amount),
           h('label', { class: 'f' }, form.kind === 'gold' ? 'Data cumpărării' : 'La data', dateIn)),
         h('div', { class: 'savebar' }, err, app.canEdit() ? h('button', { class: 'btn big', onclick: save }, 'Salvează') : h('p', { class: 'muted' }, 'Ai acces doar de citire.')),
       ],

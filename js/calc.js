@@ -457,3 +457,15 @@ export function depositTotalsByCurrency(model, asOf) {
   const rank = (c) => ['RON', 'EUR', 'USD'].indexOf(c);
   return [...by.values()].sort((a, b) => (rank(a.currency) < 0 ? 9 : rank(a.currency)) - (rank(b.currency) < 0 ? 9 : rank(b.currency)));
 }
+
+// Property-like items (house, car, garage): latest value in its own currency + RON equivalent. Not part of the
+// "Active" totals (they are not financial assets); they live in the indisponibil layer of the situations.
+export const PROPERTY_KINDS = ['property', 'vehicle', 'garage'];
+export function propertyItems(model, asOf) {
+  const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
+  return model.physical_items.filter((it) => live(it) && PROPERTY_KINDS.includes(it.kind)).map((it) => {
+    const v = pv.get(it.id);
+    const native = v ? v.value_minor : it.purchase_value_minor || 0;
+    return { item: it, native, ron: toRon(native, it.currency, model.rates, asOf), valueDate: v ? v.date : it.purchase_date };
+  });
+}

@@ -1,8 +1,8 @@
 import { h } from '../dom.js';
-import { goldItems, safeCash, totalsByCategory } from '../calc.js';
+import { goldItems, safeCash, propertyItems, totalsByCategory } from '../calc.js';
 import { parseAmount, formatMinor } from '../money.js';
 import { sparkline } from '../charts.js';
-import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, pctText, headTotal } from '../ui.js';
+import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, pctText, headTotal, eurApprox } from '../ui.js';
 
 let valueFor = null; // gold item id whose "valoare de azi" form is open
 let editCash = null; // cash item id being edited
@@ -17,6 +17,9 @@ export async function fiziceView(app) {
     const golds = goldItems(m, today);
     const cash = safeCash(m, today);
     const cashRon = cash.reduce((s, c) => s + c.ron, 0);
+    const props = propertyItems(m, today);
+    const propsRon = props.reduce((s, p) => s + p.ron, 0);
+    const KIND_NAME = { property: 'Locuință', vehicle: 'Mașină', garage: 'Garaj' };
     const canEdit = app.canEdit();
     const space = app.space;
     const err = h('p', { class: 'err sm', style: 'margin:0' });
@@ -69,6 +72,17 @@ export async function fiziceView(app) {
         canEdit ? h('button', { class: 'iconbtn secondary', style: 'width:40px;height:40px;min-height:40px;padding:0;color:var(--muted);border:0;background:transparent', 'aria-label': 'Modifică ' + c.item.currency, onclick: () => { editCash = c.item.id; app.rerender(); } },
           icon('edit', 18, 1.9)) : h('span'));
 
+    // house, car, garage: not part of the Active totals, they count as "indisponibil" in the situations
+    const propRow = (p) => editCash === p.item.id
+      ? h('div', { style: 'padding:8px 0;border-bottom:1px solid var(--line2)' }, h('b', {}, p.item.description), valueForm(p.item.id, 'Valoarea în ' + p.item.currency, formatMinor(p.native)))
+      : h('div', { class: 'cashrow', style: 'grid-template-columns:1fr auto auto' },
+        h('span', { style: 'display:flex;flex-direction:column' }, h('b', {}, p.item.description), h('span', { class: 'xs muted' }, `${KIND_NAME[p.item.kind] || p.item.kind} · ${shortDate(p.valueDate)}`)),
+        h('span', { style: 'display:flex;flex-direction:column;text-align:right' },
+          h('span', { class: 'mono' }, fmtNative(p.native, p.item.currency, { unit: true })),
+          p.item.currency === 'RON' ? null : h('span', { class: 'xs muted' }, `${lei(p.ron)} lei`)),
+        canEdit ? h('button', { class: 'iconbtn secondary', style: 'width:40px;height:40px;min-height:40px;padding:0;color:var(--muted);border:0;background:transparent', 'aria-label': 'Modifică ' + p.item.description, onclick: () => { editCash = p.item.id; app.rerender(); } },
+          icon('edit', 18, 1.9)) : h('span'));
+
     frame(app, {
       tab: 'active',
       head: backHead('#/active', 'Seif', headTotal(m, total, today)),
@@ -79,6 +93,11 @@ export async function fiziceView(app) {
           h('div', { class: 'between' }, h('span', { class: 'up' }, 'Numerar în seif'), h('span', { class: 'mono', style: 'font-weight:600' }, lei(cashRon) + ' lei')),
           h('div', { class: 'split', style: 'height:10px' }, ...cash.filter((c) => c.ron > 0).map((c) => h('div', { style: `width:${(c.ron * 100) / (cashRon || 1)}%;background:${CCY_COLOR[c.item.currency] || '#888'}` }))),
           ...cash.map(cashRow)) : null,
+        props.length ? h('section', { class: 'panel', style: 'gap:10px' },
+          h('div', { class: 'between' }, h('span', { class: 'up' }, 'Imobile · indisponibile'), h('span', { class: 'mono', style: 'font-weight:600' }, lei(propsRon) + ' lei')),
+          h('span', { class: 'xs muted mono' }, eurApprox(m, propsRon, today) + ' · estimări, nu intră în „Total active”'),
+          ...props.map(propRow)) : null,
+        canEdit && (golds.length || cash.length || props.length) ? h('a', { class: 'btn secondary', href: '#/fizice/nou', style: 'margin:16px;color:var(--ink)' }, '+ Obiect nou (aur, numerar, imobil)') : null,
       ],
     });
   });
