@@ -286,18 +286,26 @@ export function brokerGroups(model, asOf, by) {
   const acc = new Map(model.accounts.map((a) => [a.id, a]));
   const groups = new Map();
   for (const c of brokerCells(model, asOf)) {
-    const ron = by === 'instrument';
+    const ron = by === 'instrument'; // only this grouping mixes currencies, so it is shown in RON
     const inv = ron ? toRon(c.invested, c.currency, model.rates, asOf) : c.invested;
     const val = ron ? toRon(c.value, c.currency, model.rates, asOf) : c.value;
-    const key = by === 'platform' ? `${c.account_id}|${c.currency}` : by === 'instrument' ? c.instrument : c.currency;
-    const g = groups.get(key) || { key, currency: ron ? 'RON' : c.currency, invested: 0, value: 0, valueDate: null, instruments: new Set() };
+    const key = by === 'platform' ? `${c.account_id}|${c.currency}` : by === 'instrument' ? c.instrument
+      : by === 'instrumentCcy' ? `${c.instrument}|${c.currency}` : c.currency;
+    const g = groups.get(key) || { key, currency: ron ? 'RON' : c.currency, instrument: null, invested: 0, value: 0, valueDate: null, instruments: new Set(), platforms: new Set(), parts: new Map() };
     if (by === 'platform') g.account = acc.get(c.account_id) || null;
+    if (by === 'instrumentCcy') g.instrument = c.instrument;
+    const a = acc.get(c.account_id);
+    if (a) g.platforms.add(a.institution);
     g.invested += inv; g.value += val; g.instruments.add(c.instrument);
+    const p = g.parts.get(c.instrument) || { invested: 0, value: 0 };
+    p.invested += inv; p.value += val; g.parts.set(c.instrument, p);
     if (c.valueDate && (!g.valueDate || g.valueDate < c.valueDate)) g.valueDate = c.valueDate;
     groups.set(key, g);
   }
   return [...groups.values()].map((g) => ({
-    ...g, instruments: [...g.instruments].sort(), gain: g.value - g.invested,
+    ...g, instruments: [...g.instruments].sort(), platforms: [...g.platforms].sort(),
+    parts: [...g.parts.entries()].map(([instrument, v]) => ({ instrument, ...v })).sort((x, y) => (x.instrument < y.instrument ? -1 : 1)),
+    gain: g.value - g.invested,
     gainPctBp: g.invested > 0 ? roundDiv((g.value - g.invested) * 10000, g.invested) : null,
   })).sort((a, b) => (a.key < b.key ? -1 : 1));
 }

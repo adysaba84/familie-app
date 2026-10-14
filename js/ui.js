@@ -33,6 +33,7 @@ export const signed = (minor, f = formatWhole) => (minor > 0 ? '+' : '') + f(min
 // basis points -> "+6,6%" (one decimal, comma)
 export const pctText = (bp) => {
   if (bp == null) return '';
+  if (Math.abs(bp) < 5) return '0,0%';
   const t = (Math.abs(bp) / 100).toFixed(1).replace('.', ',');
   return (bp > 0 ? '+' : bp < 0 ? '−' : '') + t + '%';
 };

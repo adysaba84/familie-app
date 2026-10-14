@@ -5,7 +5,7 @@ import { icon, frame, backHead, guarded, loading, lei, signed, pctText, fmtNativ
 
 export const INSTRUMENT_LABEL = { stocks_etf: 'Acțiuni, ETF', bonds: 'Obligațiuni', cash: 'Cash' };
 const INSTR_COLOR = { stocks_etf: '#1F6F5C', bonds: '#4C78A8', cash: '#C9A24A' };
-const TABS = [['platform', 'Platformă'], ['instrument', 'Tip'], ['currency', 'Valută']];
+const TABS = [['platform', 'Platformă'], ['instrumentCcy', 'Tip'], ['currency', 'Valută']];
 let by = 'platform';
 
 export async function bursaView(app) {
@@ -19,11 +19,12 @@ export async function bursaView(app) {
     const instrTotal = byInstr.reduce((t, g) => t + g.value, 0);
     const gainBp = s.investedRon > 0 ? Math.round((s.gainRon * 10000) / s.investedRon) : null;
 
+    // sub-line: what the row is made of, with amounts in the row's own currency
+    const parts = (g) => g.parts.map((p) => `${INSTRUMENT_LABEL[p.instrument].toLowerCase()} ${fmtNative(p.value, g.currency, { unit: g.currency !== 'RON' })}`).join(' · ');
     const label = (g) => {
-      if (by === 'platform') return [`${g.account ? g.account.institution : '?'} · ${g.currency}`,
-        g.instruments.map((i) => INSTRUMENT_LABEL[i].toLowerCase()).join(', ') + (g.account ? ' · ' + g.account.owner : '')];
-      if (by === 'instrument') return [INSTRUMENT_LABEL[g.key] || g.key, 'echivalent în lei'];
-      return [g.key, g.instruments.map((i) => INSTRUMENT_LABEL[i].toLowerCase()).join(', ')];
+      if (by === 'platform') return [`${g.account ? g.account.institution : '?'} · ${g.currency}`, parts(g) + (g.account ? ' · ' + g.account.owner : '')];
+      if (by === 'instrumentCcy') return [`${INSTRUMENT_LABEL[g.instrument] || g.instrument} · ${g.currency}`, g.platforms.join(', ')];
+      return [g.key, parts(g)];
     };
     const staleDays = (g) => (by === 'platform' && g.valueDate ? daysBetween(g.valueDate, today) : null);
 

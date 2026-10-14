@@ -263,3 +263,14 @@ test('accountBalance: latest, age, rate carried from the last row that had one, 
   eq(accountBalance(mm, 'nope', '2026-03-31').balance, null);
 });
 test('latestBalances keeps the newest per account', () => eq(latestBalances(model, '2026-03-31').get('bt-cur').balance_minor, 350000));
+
+test('brokerGroups instrumentCcy: instrument x currency in native amounts, with platforms and parts', () => {
+  const g = brokerGroups({ ...m3, broker_flows: [...m3.broker_flows, { date: '2026-03-01', account_id: 'xtb', currency: 'RON', instrument: 'bonds', amount_minor: 2500000, direction: 'in' }] }, '2026-03-31', 'instrumentCcy');
+  eq(g.map((x) => x.key), ['bonds|EUR', 'bonds|RON', 'stocks_etf|EUR']);
+  eq(g[0].invested, 40000); eq(g[0].value, 40000); eq(g[0].currency, 'EUR'); eq(g[0].platforms, ['XTB']);
+  eq(g[1].value, 2500000); eq(g[2].value, 95000);
+});
+test('brokerGroups platform: parts split the row by instrument', () => {
+  const g = brokerGroups(m3, '2026-03-31', 'platform')[0];
+  eq(g.parts.map((p) => [p.instrument, p.value]), [['bonds', 40000], ['stocks_etf', 95000]]);
+});
