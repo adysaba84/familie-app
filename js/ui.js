@@ -3,6 +3,7 @@ import { formatWhole, formatMinor, CCY_SYMBOL } from './money.js';
 import { formatRate } from './money.js';
 import { SPACE_LABEL } from './schema.js';
 import { SEED } from './seed.js';
+import { fromRon } from './calc.js';
 
 // Shared building blocks for screens: page frame, header, tab bar, small formatters.
 const ICONS = {
@@ -147,3 +148,14 @@ export function whenText(daysLeft) {
   return `în ${daysLeft} zile`;
 }
 export const fullDate = (iso) => `${shortDate(iso)} ${iso.slice(0, 4)}`;
+
+// Euro equivalent of an amount in RON bani, at the latest BNR rate on or before `asOf` (every total shows lei and euro).
+export const eurOf = (m, ronMinor, asOf) => fromRon(ronMinor, 'EUR', m.rates, asOf);
+export const eurApprox = (m, ronMinor, asOf) => `≈ ${formatWhole(eurOf(m, ronMinor, asOf))} €`;
+export const eurSigned = (m, ronMinor, asOf) => `≈ ${signed(eurOf(m, ronMinor, asOf))} €`;
+// a right-aligned "lei + euro" block for page headers
+export function headTotal(m, ronMinor, asOf) {
+  return h('div', { style: 'display:flex;flex-direction:column;align-items:flex-end;padding-right:6px;line-height:1.25' },
+    h('span', { class: 'mono', style: 'font-size:15px;font-weight:600' }, lei(ronMinor) + ' lei'),
+    h('span', { class: 'xs muted mono' }, eurApprox(m, ronMinor, asOf)));
+}

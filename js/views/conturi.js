@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { accountBalance, totalsByCategory, toRon, monthlyNetInterest, STALE_DAYS } from '../calc.js';
 import { parseAmount, parsePercent, formatMinor, formatPercent } from '../money.js';
 import { sparkline } from '../charts.js';
-import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate } from '../ui.js';
+import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, headTotal } from '../ui.js';
 import { SPACE_LABEL } from '../schema.js';
 
 let tab = null; // `${space}|${accountId}` of the selected savings account
@@ -86,7 +86,7 @@ export async function conturiView(app) {
 
     frame(app, {
       tab: 'active',
-      head: backHead('#/active', 'Conturi', h('span', { class: 'mono', style: 'font-size:15px;font-weight:600;padding-right:6px' }, lei(total) + ' lei')),
+      head: backHead('#/active', 'Conturi', headTotal(m, total, today)),
       body: [
         h('section', { class: 'panel flush' }, h('div', { class: 'ghead' }, h('span', {}, 'Conturi curente'), h('span', {}, 'sold · la data')),
           ...(currents.length ? currents.map(acctRow) : [h('p', { class: 'muted', style: 'padding:12px 14px;margin:0' }, 'Niciun cont curent.')])),

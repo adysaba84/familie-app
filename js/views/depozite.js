@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { depositRows, totalsByCategory, netInterestPerMonthRon, maturityBuckets, bfgByBankOwner, maturityConcentration } from '../calc.js';
 import { formatWhole, formatPercent } from '../money.js';
 import { maturityBars } from '../charts.js';
-import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, fullDate, whenText } from '../ui.js';
+import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, fullDate, whenText, eurApprox } from '../ui.js';
 import { startEdit } from './depozit-nou.js';
 
 const MONTH_NAME = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
@@ -62,9 +62,9 @@ export async function depoziteView(app) {
       body: [
         h('section', { class: 'panel' },
           h('div', { class: 'between', style: 'align-items:flex-end' },
-            h('div', { style: 'display:flex;flex-direction:column;gap:2px' }, h('span', { class: 'up xs' }, 'Total'), h('span', { class: 'mono', style: 'font-size:24px;font-weight:600' }, lei(total), ' ', h('small', { class: 'muted', style: 'font-size:14px;font-weight:400' }, 'lei'))),
+            h('div', { style: 'display:flex;flex-direction:column;gap:2px' }, h('span', { class: 'up xs' }, 'Total'), h('span', { class: 'mono', style: 'font-size:24px;font-weight:600' }, lei(total), ' ', h('small', { class: 'muted', style: 'font-size:14px;font-weight:400' }, 'lei')), h('span', { class: 'xs muted mono' }, eurApprox(m, total, today))),
             h('div', { style: 'display:flex;flex-direction:column;gap:2px;text-align:right' }, h('span', { class: 'up xs' }, 'Dobândă netă'),
-              h('span', { class: 'mono pos', style: 'font-size:16px;font-weight:600' }, `${formatWhole(netMonth)} / lună`), h('span', { class: 'xs muted' }, 'după impozitul de 10%'))),
+              h('span', { class: 'mono pos', style: 'font-size:16px;font-weight:600' }, `${formatWhole(netMonth)} / lună`), h('span', { class: 'xs muted mono' }, `${eurApprox(m, netMonth, today)} / lună`), h('span', { class: 'xs muted' }, 'după impozitul de 10%'))),
           h('span', { class: 'sm muted', style: 'margin-top:4px' }, 'Scadențe pe luni, următoarele 12 luni (lei)'),
           maturityBars(buckets),
           conc && conc.shareBp > 5000

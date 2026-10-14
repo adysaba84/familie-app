@@ -1,7 +1,7 @@
 import { h } from '../dom.js';
 import { brokerSummary, brokerGroups, brokerSeries, daysBetween, STALE_DAYS } from '../calc.js';
 import { investedVsValue } from '../charts.js';
-import { icon, frame, backHead, guarded, loading, lei, signed, pctText, fmtNative } from '../ui.js';
+import { icon, frame, backHead, guarded, loading, lei, signed, pctText, fmtNative, eurApprox, eurSigned } from '../ui.js';
 
 export const INSTRUMENT_LABEL = { stocks_etf: 'Acțiuni, ETF', bonds: 'Obligațiuni', cash: 'Cash' };
 const INSTR_COLOR = { stocks_etf: '#1F6F5C', bonds: '#4C78A8', cash: '#C9A24A' };
@@ -58,10 +58,10 @@ export async function bursaView(app) {
       body: [
         h('section', { class: 'panel' },
           h('div', { class: 'stat3' },
-            h('div', {}, h('span', { class: 'up xs' }, 'Investit'), h('b', {}, lei(s.investedRon))),
-            h('div', {}, h('span', { class: 'up xs' }, 'Valoare'), h('b', {}, lei(s.valueRon))),
+            h('div', {}, h('span', { class: 'up xs' }, 'Investit'), h('b', {}, lei(s.investedRon)), h('span', { class: 'xs muted' }, eurApprox(m, s.investedRon, today))),
+            h('div', {}, h('span', { class: 'up xs' }, 'Valoare'), h('b', {}, lei(s.valueRon)), h('span', { class: 'xs muted' }, eurApprox(m, s.valueRon, today))),
             h('div', {}, h('span', { class: 'up xs' }, 'Câștig'), h('b', { class: s.gainRon < 0 ? 'neg' : 'pos' }, signed(s.gainRon)),
-              h('span', { class: 'xs ' + (s.gainRon < 0 ? 'neg' : 'pos') }, pctText(gainBp)))),
+              h('span', { class: 'xs ' + (s.gainRon < 0 ? 'neg' : 'pos') }, pctText(gainBp)), h('span', { class: 'xs muted' }, eurSigned(m, s.gainRon, today)))),
           s.investedRon || s.valueRon ? investedVsValue(series) : null,
           h('div', { class: 'between xs muted' },
             h('span', { style: 'display:flex;gap:12px' },

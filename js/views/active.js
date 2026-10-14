@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { totalsByCategory, monthlyChange, currencyBreakdown, fromRon, staleAccounts, brokerSummary, addMonths, monthEnd } from '../calc.js';
 import { formatWhole } from '../money.js';
 import { monthlyBars } from '../charts.js';
-import { frame, mainHead, catNav, guarded, loading, lei, signed, pctText, latestRateText, fmtNative, shortDate } from '../ui.js';
+import { frame, mainHead, catNav, guarded, loading, lei, signed, pctText, latestRateText, fmtNative, shortDate, eurApprox } from '../ui.js';
 
 const CAT_COLOR = { deposits: '#1F6F5C', broker: '#5FA48F', physical: '#C9A24A', accounts: '#A9CFC2', insurance: '#7A5FE6' };
 const CCY_COLOR = { RON: '#1F6F5C', EUR: '#4C78A8', USD: '#A9CFC2', AUR: '#C9A24A' };
@@ -71,7 +71,7 @@ export async function activeView(app) {
             h('span', { class: 'sw', style: `background:${CAT_COLOR[key]}` }),
             h('span', { class: 'nm' }, h('b', {}, name), h('span', { class: 'xs ' + (key === 'accounts' && stale ? 'neg' : 'muted') },
               key === 'accounts' && stale ? `${stale} ${stale === 1 ? 'sold mai vechi' : 'solduri mai vechi'} de 30 zile` : sub)),
-            h('span', { class: 'amt' }, lei(val)), h('span', { class: 'pc' }, share(val) + '%'));
+            h('span', { class: 'amt', style: 'text-align:right' }, lei(val), h('small', { class: 'xs muted', style: 'display:block;font-family:var(--mono)' }, eurApprox(m, val, today))), h('span', { class: 'pc' }, share(val) + '%'));
           return row;
         })),
         h('section', { class: 'panel' },

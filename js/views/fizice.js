@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { goldItems, safeCash, totalsByCategory } from '../calc.js';
 import { parseAmount, formatMinor } from '../money.js';
 import { sparkline } from '../charts.js';
-import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, pctText } from '../ui.js';
+import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, pctText, headTotal } from '../ui.js';
 
 let valueFor = null; // gold item id whose "valoare de azi" form is open
 let editCash = null; // cash item id being edited
@@ -71,7 +71,7 @@ export async function fiziceView(app) {
 
     frame(app, {
       tab: 'active',
-      head: backHead('#/active', 'Seif', h('span', { class: 'mono', style: 'font-size:15px;font-weight:600;padding-right:6px' }, lei(total) + ' lei')),
+      head: backHead('#/active', 'Seif', headTotal(m, total, today)),
       body: [
         ...golds.map(goldCard),
         golds.length === 0 ? h('div', { class: 'card' }, h('p', { class: 'muted', style: 'margin:0 0 12px' }, 'Niciun obiect de aur înregistrat.'), canEdit ? h('a', { class: 'btn', href: '#/fizice/nou' }, 'Adaugă obiect') : null) : null,
