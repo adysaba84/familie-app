@@ -73,7 +73,9 @@ function openFiles_(c) {
 // ---------- 1. BNR rates ----------
 function dailyRates() {
   const c = cfg_();
-  const xml = UrlFetchApp.fetch('https://www.bnr.ro/nbrfxrates.xml', { muteHttpExceptions: false }).getContentText();
+  const xml = UrlFetchApp.fetch('https://www.bnr.ro/nbrfxrates.xml', { headers: { 'User-Agent': 'Mozilla/5.0' } }).getContentText();
+  // bnr.ro has been seen answering with its HTML home page instead of the XML feed: refuse to parse anything else
+  if (xml.indexOf('<DataSet') < 0) throw new Error('BNR nu a întors XML-ul cu cursurile (a întors altceva): ' + xml.slice(0, 80));
   const root = XmlService.parse(xml).getRootElement();
   const ns = root.getNamespace();
   const cube = root.getChild('Body', ns).getChild('Cube', ns);
