@@ -143,6 +143,12 @@ test('totals by category', () => {
   eq(t.accounts, 350000 + 1000000);
   eq(t.total, t.broker + t.deposits + t.physical + t.accounts);
 });
+test('totals: pensions, loans given and credit cards stay out of the Active totals', () => {
+  const extra = [['pension', 'p1'], ['loan', 'l1'], ['card', 'c1']].map(([kind, id]) => ({ id, kind, currency_default: 'RON', status: 'active' }));
+  const m2 = { ...model, accounts: model.accounts.concat(extra),
+    balances: model.balances.concat(extra.map((a) => ({ account_id: a.id, date: '2026-03-01', balance_minor: 999999 }))) };
+  eq(totalsByCategory(m2, '2026-03-31').total, totalsByCategory(model, '2026-03-31').total);
+});
 test('totals: nothing before records exist', () => eq(totalsByCategory(model, '2025-12-31').total, 0));
 test('monthlyChange: deltas add up and new money is net broker flow', () => {
   const m = monthlyChange(model, '2026-03-31', 3);

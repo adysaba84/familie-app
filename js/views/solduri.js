@@ -3,7 +3,8 @@ import { accountBalance, STALE_DAYS } from '../calc.js';
 import { parseAmount, formatMinor } from '../money.js';
 import { closeHead, frame, guarded, loading, shortDate } from '../ui.js';
 
-const KINDS = [['current', 'Conturi curente'], ['wallet', 'Portofele'], ['voucher', 'Tichete de masă'], ['savings', 'Economii']];
+const KINDS = [['current', 'Conturi curente'], ['wallet', 'Portofele'], ['voucher', 'Tichete de masă'], ['savings', 'Economii'],
+  ['insurance', 'Asigurări'], ['pension', 'Pensii'], ['loan', 'Împrumuturi date'], ['card', 'Carduri de credit · credit disponibil']];
 let entered = {};
 let date = null;
 

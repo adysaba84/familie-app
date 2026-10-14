@@ -205,7 +205,7 @@ export function totalsByCategory(model, asOf) {
   const acc = new Map(model.accounts.map((a) => [a.id, a]));
   for (const b of latestBy(model.balances, (r) => r.account_id, asOf).values()) {
     const a = acc.get(b.account_id);
-    if (!a) continue;
+    if (!a || OFF_ACTIVE_KINDS.includes(a.kind)) continue; // pensions, loans given and credit cards are Situații only
     const ron = toRon(b.balance_minor, a.currency_default, rates, asOf);
     if (a.kind === 'insurance') insurance += ron; else accounts += ron;
   }
@@ -242,6 +242,9 @@ export function monthlyChange(model, today, months = 12) {
 
 // ---------- staleness ----------
 // Accounts whose latest record is older than 30 days (or that have none).
+// account kinds that count in Situații (indisponibil / cards) but never in the Active totals
+export const OFF_ACTIVE_KINDS = ['pension', 'loan', 'card'];
+
 export function staleAccounts(model, today, days = STALE_DAYS) {
   const last = new Map();
   const note = (id, date) => { if (!last.has(id) || last.get(id) < date) last.set(id, date); };
