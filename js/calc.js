@@ -200,13 +200,16 @@ export function totalsByCategory(model, asOf) {
       : toRon(v ? v.value_minor : 0, it.currency, rates, asOf);
   }
 
-  let accounts = 0;
+  // balances: insurance (e.g. NN, value of the account) is its own category, never mixed into accounts/savings
+  let accounts = 0, insurance = 0;
   const acc = new Map(model.accounts.map((a) => [a.id, a]));
   for (const b of latestBy(model.balances, (r) => r.account_id, asOf).values()) {
     const a = acc.get(b.account_id);
-    if (a) accounts += toRon(b.balance_minor, a.currency_default, rates, asOf);
+    if (!a) continue;
+    const ron = toRon(b.balance_minor, a.currency_default, rates, asOf);
+    if (a.kind === 'insurance') insurance += ron; else accounts += ron;
   }
-  return { broker, deposits, physical, accounts, total: broker + deposits + physical + accounts };
+  return { broker, deposits, physical, accounts, insurance, total: broker + deposits + physical + accounts + insurance };
 }
 
 // Month-by-month change for the last `months` months (needs months+1 snapshots).
@@ -230,7 +233,7 @@ export function monthlyChange(model, today, months = 12) {
       month: c.date.slice(0, 7), date: c.date, total: c.total, delta: c.total - p.total, newMoney,
       byCategory: {
         broker: c.broker - p.broker, deposits: c.deposits - p.deposits,
-        physical: c.physical - p.physical, accounts: c.accounts - p.accounts,
+        physical: c.physical - p.physical, accounts: c.accounts - p.accounts, insurance: c.insurance - p.insurance,
       },
     });
   }

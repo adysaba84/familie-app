@@ -4,7 +4,7 @@ import { formatWhole } from '../money.js';
 import { monthlyBars } from '../charts.js';
 import { frame, mainHead, catNav, guarded, loading, lei, signed, pctText, latestRateText, fmtNative, shortDate } from '../ui.js';
 
-const CAT_COLOR = { deposits: '#1F6F5C', broker: '#5FA48F', physical: '#C9A24A', accounts: '#A9CFC2' };
+const CAT_COLOR = { deposits: '#1F6F5C', broker: '#5FA48F', physical: '#C9A24A', accounts: '#A9CFC2', insurance: '#7A5FE6' };
 const CCY_COLOR = { RON: '#1F6F5C', EUR: '#4C78A8', USD: '#A9CFC2', AUR: '#C9A24A' };
 const CCY_LABEL = { AUR: 'Aur' };
 const MONTH_NAME = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
@@ -24,11 +24,13 @@ export async function activeView(app) {
     const share = (v) => (t.total > 0 ? Math.round((v * 100) / t.total) : 0);
     const monthNameNow = MONTH_NAME[Number(today.slice(5, 7)) - 1];
 
+    const hasInsurance = m.accounts.some((a) => !a.void && a.kind === 'insurance');
     const cats = [
       ['deposits', 'Depozite', depositsLabel(m.deposits.filter((d) => !d.void && d.status === 'active').length), t.deposits, '#/depozite'],
       ['broker', 'Bursă', 'investit vs. valoare', t.broker, '#/bursa'],
       ['physical', 'Seif', 'aur, numerar', t.physical, '#/fizice'],
       ['accounts', 'Conturi și economii', 'conturi, tichete, economii', t.accounts, '#/conturi'],
+      ...(hasInsurance ? [['insurance', 'Asigurări', 'valoarea contului (NN)', t.insurance, null]] : []),
     ];
     const stale = staleAccounts(m, today).filter((s) => s.account.kind !== 'broker').length;
     const bs = brokerSummary(m, today);
@@ -60,7 +62,7 @@ export async function activeView(app) {
           monthlyBars(changes),
           h('div', { class: 'sep stack sm', style: 'gap:6px' },
             h('span', { style: 'font-weight:600' }, `Din ce vin cei ${signed(last.delta)} din ${monthNameNow}`),
-            src('broker', 'Bursă'), src('deposits', 'Depozite'), src('physical', 'Seif'), src('accounts', 'Conturi'),
+            src('broker', 'Bursă'), src('deposits', 'Depozite'), src('physical', 'Seif'), src('accounts', 'Conturi'), hasInsurance ? src('insurance', 'Asigurări') : null,
             h('span', { class: 'muted xs' }, last.newMoney
               ? `din care bani noi depuși la bursă: ${formatWhole(last.newMoney)} · restul din randament și curs`
               : 'fără depuneri noi la bursă în această lună'))),

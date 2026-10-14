@@ -274,3 +274,20 @@ test('brokerGroups platform: parts split the row by instrument', () => {
   const g = brokerGroups(m3, '2026-03-31', 'platform')[0];
   eq(g.parts.map((p) => [p.instrument, p.value]), [['stocks_etf', 95000], ['bonds', 40000]]);
 });
+
+test('totalsByCategory: insurance is its own category, not mixed into accounts', () => {
+  const m = {
+    ...model,
+    accounts: [...model.accounts, { id: 'ins', kind: 'insurance', institution: 'Insurer', owner: 'X', currency_default: 'RON', status: 'active' }],
+    balances: [...model.balances, { account_id: 'ins', date: '2026-03-10', balance_minor: 5000000 }],
+  };
+  const t = totalsByCategory(m, '2026-03-31');
+  const before = totalsByCategory(model, '2026-03-31');
+  eq(t.insurance, 5000000);
+  eq(t.accounts, before.accounts); // unchanged
+  eq(t.total, before.total + 5000000);
+  eq(before.insurance, 0);
+  const mc = monthlyChange(m, '2026-03-31', 3);
+  eq(mc.reduce((s, x) => s + x.byCategory.insurance, 0), 5000000);
+  for (const x of mc) eq(Object.values(x.byCategory).reduce((a, b) => a + b, 0), x.delta);
+});
