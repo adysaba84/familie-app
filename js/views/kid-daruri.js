@@ -34,7 +34,7 @@ export function giftsSection(model, { canAdd = false, today } = {}) {
   const people = new Set(all.map((g) => g.giver)).size;
 
   // the bar: the ten biggest givers and the rest together. Shares count euro and dollars in lei at the latest rate in the
-  // file; someone who gave once and less than 10 lei is left out (giverShares)
+  // file; someone who gave once and less than 50 lei is left out (giverShares)
   const toLei = (minor, ccy) => { try { return toRon(minor, ccy, model.rates || [], today || '9999-12-31'); } catch (e) { return ccy === 'RON' ? minor : 0; } };
   const ranked = giverShares(all, toLei);
   const top = ranked.slice(0, COLORS.length), rest = ranked.slice(COLORS.length);

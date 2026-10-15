@@ -53,9 +53,9 @@ export function byGiver(gifts, currency = 'RON') {
 }
 
 // Share of each giver in the whole, counting every currency in lei at the rate `toRon(minor, currency)` returns.
-// A giver who appears once with less than `minSingle` (10 lei) is left out of the shares. Each row also keeps the amounts
+// A giver who appears once with less than `minSingle` (50 lei) is left out of the shares. Each row also keeps the amounts
 // per currency ("23.500 lei + 500 €"). Biggest first.
-export function giverShares(gifts, toRon, minSingle = 1000) {
+export function giverShares(gifts, toRon, minSingle = 5000) {
   const map = new Map();
   for (const g of gifts) {
     const r = map.get(g.giver) || { giver: g.giver, count: 0, ron: 0, parts: new Map() };
