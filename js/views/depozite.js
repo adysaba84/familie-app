@@ -4,6 +4,7 @@ import { formatWhole, formatPercent } from '../money.js';
 import { maturityBars } from '../charts.js';
 import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, fullDate, whenText, eurApprox } from '../ui.js';
 import { startEdit } from './depozit-nou.js';
+import { startClose } from './depozit-inchide.js';
 
 const MONTH_NAME = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
 const SHOWN = 4;
@@ -43,18 +44,22 @@ export async function depoziteView(app) {
       const d = r.deposit;
       const soon = r.daysLeft <= 7;
       const isOpen = open === d.id;
+      const go = (mode) => { startClose(d, space, mode, today); app.go('/depozite/inchide'); };
       const actions = isOpen && canEdit ? h('div', { class: 'grid2', style: 'grid-column:span 2;margin-top:6px' },
-        h('button', { class: 'secondary', onclick: () => { startEdit(d); app.go('/depozite/nou'); } }, 'Modifică'),
+        r.daysLeft <= 0 ? h('button', { onclick: () => go('matured') }, 'Închide la scadență') : null,
+        h('button', { class: r.daysLeft <= 0 ? 'secondary' : '', onclick: () => go('extend') }, 'Prelungește'),
+        r.daysLeft > 0 ? h('button', { class: 'secondary', onclick: () => go('broken') }, 'Închide înainte de scadență') : null,
+        h('button', { class: 'secondary', onclick: () => { startEdit(d); app.go('/depozite/nou'); } }, 'Modifică (corectează o greșeală)'),
         confirmVoid === d.id
-          ? h('button', { onclick: async (e) => { e.target.disabled = true; await app.void(space, 'deposits', d, 'anulat'); open = null; confirmVoid = null; app.rerender(); }, style: 'background:var(--neg)' }, 'Sigur? Anulează')
-          : h('button', { class: 'secondary', onclick: () => { confirmVoid = d.id; app.rerender(); } }, 'Anulează depozitul')) : null;
+          ? h('button', { onclick: async (e) => { e.target.disabled = true; await app.void(space, 'deposits', d, 'anulat'); open = null; confirmVoid = null; app.rerender(); }, style: 'background:var(--neg)' }, 'Sigur? Șterge din toate datele')
+          : h('button', { class: 'secondary', onclick: () => { confirmVoid = d.id; app.rerender(); } }, 'Anulează (a fost o greșeală)')) : null;
       return h('div', {
         class: 'deprow', role: 'button', tabindex: '0', 'aria-expanded': String(isOpen),
         onclick: (e) => { if (e.target.closest('button')) return; open = isOpen ? null : d.id; confirmVoid = null; app.rerender(); },
       },
       h('span', { class: 'mono', style: 'font-weight:600' }, fmtNative(d.principal_minor, d.currency, { unit: true })),
       h('span', { class: 'mono xs ' + (soon ? 'neg' : ''), style: soon ? 'font-weight:600' : '' },
-        soon ? `${shortDate(d.maturity_date)} · ${whenText(r.daysLeft)}` : fullDate(d.maturity_date)),
+        r.overdue ? `${shortDate(d.maturity_date)} · scadent – decide ce faci` : soon ? `${shortDate(d.maturity_date)} · ${whenText(r.daysLeft)}` : fullDate(d.maturity_date)),
       h('span', { class: 'xs muted' }, `${r.account ? r.account.institution + (showOwner ? ' ' + r.account.owner : '') + ' · ' : ''}${formatPercent(d.rate_bp)} · ${termText(d.term_months)} · ${d.capitalization ? 'cu' : 'fără'} capitalizare`),
       h('span', { class: 'xs pos', style: 'text-align:right' }, `+${formatWhole(r.net)}${d.currency === 'RON' ? '' : ' ' + (d.currency === 'EUR' ? '€' : '$')} net`),
       actions);

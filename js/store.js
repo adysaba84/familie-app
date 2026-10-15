@@ -25,7 +25,9 @@ async function ensureSchema(fileId) {
     const tab = present[i], want = TABS[tab];
     const have = (heads[i][0] || []).map(String);
     if (have.join('|') === want.join('|')) continue;
-    if (heads[i].length > 1) throw new Error('schema_mismatch:' + tab);
+    // an older sheet whose header is just the start of the current one (columns were added at the end): extend it, data stays valid
+    const grown = have.length > 0 && have.length < want.length && have.every((c, j) => c === want[j]);
+    if (heads[i].length > 1 && !grown) throw new Error('schema_mismatch:' + tab);
     try { await updateRange(fileId, `${tab}!A1`, [want]); } catch (e) { /* read-only: fine */ }
   }
   checked.set(fileId, present);

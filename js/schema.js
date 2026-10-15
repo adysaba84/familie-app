@@ -6,8 +6,11 @@ export const TABS = {
   accounts: withCommon(['id', 'kind', 'institution', 'owner', 'name', 'currency_default', 'status', 'note']),
   broker_flows: withCommon(['id', 'date', 'account_id', 'currency', 'instrument', 'amount_minor', 'direction', 'note']),
   broker_values: withCommon(['id', 'date', 'account_id', 'currency', 'instrument', 'value_minor']),
-  deposits: withCommon(['id', 'account_id', 'currency', 'principal_minor', 'rate_bp', 'term_months', 'start_date',
+  // status: active | matured (closed at maturity) | broken (closed before maturity). Closing = void + a new row with the
+  // closing fields, which sit AFTER the common columns so the sheets created earlier migrate by just extending the header.
+  deposits: [...withCommon(['id', 'account_id', 'currency', 'principal_minor', 'rate_bp', 'term_months', 'start_date',
     'maturity_date', 'capitalization', 'auto_renew', 'notify_days', 'status', 'note']),
+  'closed_date', 'interest_received_minor', 'closed_to_account_id', 'renewed_from_id'],
   physical_items: withCommon(['id', 'kind', 'currency', 'description', 'quantity', 'purchase_value_minor', 'purchase_date']),
   physical_values: withCommon(['id', 'item_id', 'date', 'value_minor']),
   balances: withCommon(['id', 'account_id', 'date', 'balance_minor', 'rate_bp']),

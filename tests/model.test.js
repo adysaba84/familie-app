@@ -36,6 +36,8 @@ test('columnLetter', () => { eq(columnLetter(1), 'A'); eq(columnLetter(26), 'Z')
 test('schema: every data tab ends with the common void columns', () => {
   for (const [tab, cols] of Object.entries(TABS)) {
     if (['rates', 'notify', 'notifications_log', 'audit'].includes(tab)) continue;
-    eq(cols.slice(-4), ['created_by', 'created_at', 'void', 'void_reason'], tab);
+    // deposits grew four closing columns after the common ones (sheets made earlier migrate by extending the header)
+    const own = tab === 'deposits' ? cols.slice(0, -4) : cols;
+    eq(own.slice(-4), ['created_by', 'created_at', 'void', 'void_reason'], tab);
   }
 });

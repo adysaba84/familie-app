@@ -108,7 +108,7 @@ function dailyNotifications() {
     const sent = new Set(log.rows.map((r) => String(r.key)));
     table_(ss, 'deposits').rows.forEach((d) => {
       const notify = Number(d.notify_days);
-      if (d.status !== 'active' || !(notify > 0)) return;
+      if (d.status !== 'active' || d.closed_date || !(notify > 0)) return; // closed / rolled-over deposits have status matured|broken
       const mat = ymd_(d.maturity_date);
       const left = daysBetween_(today, mat);
       if (left < 0 || left > notify) return;

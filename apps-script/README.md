@@ -27,7 +27,7 @@ emailurile sunt „Script Properties”.
 | Funcție | Când | Ce |
 |---|---|---|
 | `dailyRates` | L–V, 10:30 și 13:30 | Citește `bnr.ro/nbrfxrates.xml`, adaugă EUR, USD, XAU (×10 000) în `rates`, în ambele fișiere, dacă data nu există deja cu sursa `BNR`. |
-| `dailyNotifications` | zilnic 08:00 | Depozitele active ale căror `notify_days` au venit: email proprietarului contului + lui Ady, o singură dată (cheia din `notifications_log`). Fără sume în subiect. |
+| `dailyNotifications` | zilnic 08:00 | Depozitele active (nu cele închise, prelungite sau anulate) ale căror `notify_days` au venit: email proprietarului contului + lui Ady, o singură dată (cheia din `notifications_log`). Fără sume în subiect. |
 | `monthlyReminder` | 1 ale lunii | Email cu conturile fără sold de peste 30 de zile. |
 | `weeklyBackup` | duminică | Copii ale ambelor fișiere în Drive → `Finanțe/backup`, păstrează ultimele 12 din fiecare. |
 

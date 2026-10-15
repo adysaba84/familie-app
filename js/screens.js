@@ -5,6 +5,7 @@ import { bursaValoareView } from './views/bursa-valoare.js';
 import { cursView } from './views/curs.js';
 import { depoziteView } from './views/depozite.js';
 import { depozitNouView } from './views/depozit-nou.js';
+import { depozitInchideView } from './views/depozit-inchide.js';
 import { fiziceView } from './views/fizice.js';
 import { fiziceNouView } from './views/fizice-nou.js';
 import { conturiView } from './views/conturi.js';
@@ -23,6 +24,7 @@ export const SCREENS = {
   '/bursa/valoare': bursaValoareView,
   '/depozite': depoziteView,
   '/depozite/nou': depozitNouView,
+  '/depozite/inchide': depozitInchideView,
   '/fizice': fiziceView,
   '/fizice/nou': fiziceNouView,
   '/conturi': conturiView,

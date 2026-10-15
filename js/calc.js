@@ -129,16 +129,24 @@ export function grossInterest({ principal_minor, rate_bp, term_months, start_dat
 
 export const netOf = (gross) => gross - roundDiv(gross * INTEREST_TAX_BP, 10000);
 
+// The one rule for "is this deposit money on hand at `date`". active = until it is closed (also past its maturity: it
+// is overdue, the money is still there until someone decides). matured / broken = until the day it was CLOSED (not the
+// contractual maturity), exclusive: on the closing day the money is already in the destination account. A closed row
+// without closed_date (older rows) ends at its maturity. Void (a mistake) never counts.
+export const depositEndDate = (d) => (d.status === 'matured' || d.status === 'broken' ? d.closed_date || d.maturity_date : null);
 export function depositIncluded(d, date) {
-  if (!live(d) || d.status === 'broken') return false;
-  return d.start_date <= date && (d.status === 'active' || d.maturity_date > date);
+  if (!live(d) || d.start_date > date) return false;
+  const end = depositEndDate(d);
+  return end == null || date < end;
 }
+// Still open but its maturity has passed: "scadent - decide ce faci". Not earning the quoted rate any more.
+export const depositOverdue = (d, today) => live(d) && d.status === 'active' && d.maturity_date < today;
 
 // Net interest per month across active deposits, in RON: sum(principal * rate * 0.9 / 12).
 export function netInterestPerMonthRon(deposits, rates, asOf) {
   let total = 0;
   for (const d of deposits) {
-    if (!depositIncluded(d, asOf) || d.status !== 'active') continue;
+    if (!depositIncluded(d, asOf) || depositOverdue(d, asOf)) continue;
     const ron = toRon(d.principal_minor, d.currency, rates, asOf);
     total += (ron * d.rate_bp * (10000 - INTEREST_TAX_BP)) / (10000 * 10000 * 12);
   }
@@ -392,7 +400,7 @@ export function depositRows(model, asOf) {
   const acc = new Map(model.accounts.map((a) => [a.id, a]));
   return model.deposits.filter((d) => live(d) && d.status === 'active').map((d) => {
     const gross = grossInterest(d);
-    return { deposit: d, account: acc.get(d.account_id) || null, gross, net: netOf(gross), daysLeft: daysBetween(asOf, d.maturity_date) };
+    return { deposit: d, account: acc.get(d.account_id) || null, gross, net: netOf(gross), daysLeft: daysBetween(asOf, d.maturity_date), overdue: depositOverdue(d, asOf) };
   }).sort((a, b) => (a.deposit.maturity_date < b.deposit.maturity_date ? -1 : a.deposit.maturity_date > b.deposit.maturity_date ? 1 : 0));
 }
 
@@ -401,7 +409,7 @@ export function maturityConcentration(model, asOf) {
   const byMonth = new Map();
   let all = 0;
   for (const d of model.deposits) {
-    if (!live(d) || d.status !== 'active') continue;
+    if (!live(d) || d.status !== 'active' || d.maturity_date < asOf) continue;
     const ron = toRon(d.principal_minor, d.currency, model.rates, asOf);
     const m = d.maturity_date.slice(0, 7);
     byMonth.set(m, (byMonth.get(m) || 0) + ron); all += ron;
@@ -448,11 +456,11 @@ export function accountBalance(model, accountId, asOf) {
   };
 }
 
-// Active deposits summed per currency in their own currency (+ RON equivalent and count), RON, EUR, USD first.
+// Deposits on hand at asOf summed per currency in their own currency (+ RON equivalent and count), RON, EUR, USD first.
 export function depositTotalsByCurrency(model, asOf) {
   const by = new Map();
   for (const d of model.deposits) {
-    if (!depositIncluded(d, asOf) || d.status !== 'active') continue;
+    if (!depositIncluded(d, asOf)) continue;
     const g = by.get(d.currency) || { currency: d.currency, native: 0, ron: 0, count: 0 };
     g.native += d.principal_minor; g.ron += toRon(d.principal_minor, d.currency, model.rates, asOf); g.count++;
     by.set(d.currency, g);
@@ -479,4 +487,66 @@ export function propertyItems(model, asOf) {
     const native = propertyValue(model, it, asOf);
     return { item: it, native, ron: toRon(native, it.currency, model.rates, asOf), valueDate: v ? v.date : it.purchase_date };
   });
+}
+
+// ---------- closing and rolling over deposits ----------
+// Net interest to propose when closing: the whole term at maturity, otherwise simple interest up to the closing day.
+export function closeInterestEstimate(d, date) {
+  const early = date < d.maturity_date;
+  return netOf(grossInterest(early ? { ...d, capitalization: 0, maturity_date: date } : d));
+}
+
+// Accounts a closed deposit may pay into: the owner's current / savings / wallet accounts in the deposit's currency.
+export function destinationAccounts(model, d) {
+  const acc = model.accounts.find((a) => a.id === d.account_id);
+  return model.accounts.filter((a) => !a.void && a.status !== 'closed' && ['current', 'savings', 'wallet'].includes(a.kind)
+    && a.currency_default === d.currency && (!acc || a.owner === acc.owner));
+}
+
+const CLOSED_COPY = ['account_id', 'currency', 'principal_minor', 'rate_bp', 'term_months', 'start_date', 'maturity_date',
+  'capitalization', 'auto_renew', 'notify_days', 'note', 'renewed_from_id'];
+
+// Everything that has to be written to close deposit `d` on `date` as `status` ('matured' | 'broken'), as data:
+//  closed        the replacement row (the old one is voided), carrying closed_date / interest / destination
+//  balance       the new balance row of the destination account (previous balance + the money that arrives), or null
+//  voidBalances  same-day balance rows of that account that the new row replaces
+//  laterBalances balances of that account dated after `date` (they will not include this money)
+// `keptMinor` is what stays in a new deposit (rollover); the rest of principal + interest lands in the account.
+// Throws a plain message when the request makes no sense.
+export function planClose(model, d, { status, date, interestMinor, toAccountId = null, keptMinor = 0 }) {
+  if (!live(d) || d.status !== 'active') throw new Error('Depozitul nu mai e activ.');
+  if (!['matured', 'broken'].includes(status)) throw new Error('Stare necunoscută.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) throw new Error('Alege data închiderii.');
+  if (date < d.start_date) throw new Error('Data închiderii e înaintea constituirii.');
+  if (status === 'matured' && date < d.maturity_date) throw new Error('Închiderea la scadență nu poate fi înainte de scadență.');
+  if (status === 'broken' && date >= d.maturity_date) throw new Error('Închiderea înainte de scadență trebuie să fie înainte de data scadenței.');
+  const interest = interestMinor == null ? 0 : interestMinor;
+  if (interest < 0) throw new Error('Dobânda nu poate fi negativă.');
+  const toMinor = d.principal_minor + interest - keptMinor;
+  const closed = { ...Object.fromEntries(CLOSED_COPY.map((k) => [k, d[k] == null ? '' : d[k]])),
+    status, closed_date: date, interest_received_minor: interest, closed_to_account_id: toMinor === 0 ? '' : toAccountId || '' };
+  let balance = null, voidBalances = [], laterBalances = [];
+  if (toMinor !== 0) {
+    const a = model.accounts.find((x) => x.id === toAccountId);
+    if (!a) throw new Error('Alege contul în care au intrat banii.');
+    if (a.currency_default !== d.currency) throw new Error('Contul trebuie să fie în aceeași valută cu depozitul.');
+    const b = accountBalance(model, a.id, date);
+    balance = { account_id: a.id, date, balance_minor: (b.balance || 0) + toMinor, rate_bp: b.rateBp == null ? '' : b.rateBp };
+    voidBalances = model.balances.filter((x) => live(x) && x.account_id === a.id && x.date === date);
+    laterBalances = model.balances.filter((x) => live(x) && x.account_id === a.id && x.date > date);
+  }
+  return { closed, balance, voidBalances, laterBalances, toMinor };
+}
+
+// Rolling over = closing as matured on the maturity day + a new deposit starting that very day (no double count on the
+// pivot day: the closed row ends there, the new one starts there). `next` = { principal_minor, rate_bp, term_months,
+// capitalization }; the caller sets the new row's renewed_from_id once the closed row has an id.
+export function planRollover(model, d, { interestMinor, next, toAccountId = null }) {
+  if (!(next.principal_minor > 0)) throw new Error('Suma noului depozit trebuie să fie pozitivă.');
+  const plan = planClose(model, d, { status: 'matured', date: d.maturity_date, interestMinor, toAccountId, keptMinor: next.principal_minor });
+  const fresh = { account_id: d.account_id, currency: d.currency, principal_minor: next.principal_minor, rate_bp: next.rate_bp,
+    term_months: next.term_months, start_date: d.maturity_date, maturity_date: addMonths(d.maturity_date, next.term_months),
+    capitalization: next.capitalization ? 1 : 0, auto_renew: d.auto_renew == null ? 0 : d.auto_renew, notify_days: d.notify_days == null ? 0 : d.notify_days,
+    status: 'active', note: '' };
+  return { ...plan, fresh };
 }

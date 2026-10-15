@@ -95,7 +95,7 @@ export function situation(model, asOf) {
   }
 
   for (const d of model.deposits) {
-    if (!depositIncluded(d, asOf) || d.status !== 'active') continue;
+    if (!depositIncluded(d, asOf)) continue;
     bump(disponibil, 'depozite', toRon(d.principal_minor, d.currency, rates, asOf));
     addNative(d.currency, d.principal_minor);
   }

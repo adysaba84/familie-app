@@ -3,7 +3,7 @@ import { TABS } from './schema.js';
 // Pure helpers: Sheets values (array of arrays, header first) <-> typed rows. No network here.
 const NUMERIC = new Set([
   'amount_minor', 'value_minor', 'principal_minor', 'rate_bp', 'term_months', 'capitalization', 'auto_renew',
-  'notify_days', 'purchase_value_minor', 'balance_minor', 'days_before_maturity', 'EUR', 'USD', 'XAU', 'quantity',
+  'notify_days', 'purchase_value_minor', 'balance_minor', 'days_before_maturity', 'EUR', 'USD', 'XAU', 'quantity', 'interest_received_minor',
 ]);
 
 // Each row keeps `_row` (1-based sheet row number) so a later edit can find it.

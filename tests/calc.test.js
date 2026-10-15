@@ -105,7 +105,8 @@ test('netOf = gross - 10%', () => { eq(netOf(60000), 54000); eq(netOf(0), 0); })
 test('depositIncluded', () => {
   const d = model.deposits[0];
   eq(depositIncluded(d, '2026-01-14'), false); eq(depositIncluded(d, '2026-01-15'), true);
-  eq(depositIncluded({ ...d, status: 'broken' }, '2026-06-01'), false);
+  eq(depositIncluded({ ...d, status: 'broken', closed_date: '2026-06-01' }, '2026-06-01'), false);
+  eq(depositIncluded({ ...d, status: 'broken', closed_date: '2026-06-01' }, '2026-05-31'), true);
   eq(depositIncluded({ ...d, void: true }, '2026-06-01'), false);
   eq(depositIncluded({ ...d, status: 'matured', maturity_date: '2026-05-01' }, '2026-06-01'), false);
 });
