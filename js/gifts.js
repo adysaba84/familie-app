@@ -52,6 +52,25 @@ export function byGiver(gifts, currency = 'RON') {
     .sort((a, b) => b.minor - a.minor || (a.giver < b.giver ? -1 : 1));
 }
 
+// Share of each giver in the whole, counting every currency in lei at the rate `toRon(minor, currency)` returns.
+// A giver who appears once with less than `minSingle` (10 lei) is left out of the shares. Each row also keeps the amounts
+// per currency ("23.500 lei + 500 €"). Biggest first.
+export function giverShares(gifts, toRon, minSingle = 1000) {
+  const map = new Map();
+  for (const g of gifts) {
+    const r = map.get(g.giver) || { giver: g.giver, count: 0, ron: 0, parts: new Map() };
+    r.count++; r.ron += toRon(g.amount_minor, g.currency);
+    r.parts.set(g.currency, (r.parts.get(g.currency) || 0) + g.amount_minor);
+    map.set(g.giver, r);
+  }
+  const kept = [...map.values()].filter((r) => !(r.count === 1 && r.ron < minSingle));
+  const total = kept.reduce((s, r) => s + r.ron, 0);
+  return kept.map((r) => ({
+    giver: r.giver, ron: r.ron, share: total ? r.ron / total : 0,
+    parts: [...r.parts.entries()].map(([currency, minor]) => ({ currency, minor })).sort((a, b) => CURRENCIES.indexOf(a.currency) - CURRENCIES.indexOf(b.currency)),
+  })).sort((a, b) => b.ron - a.ron || (a.giver < b.giver ? -1 : 1));
+}
+
 export function byYear(gifts) {
   const years = new Map();
   for (const g of gifts) {

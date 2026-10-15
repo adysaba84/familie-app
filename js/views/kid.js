@@ -123,7 +123,7 @@ export async function kidView(app, { asParent = false } = {}) {
           h('span', { class: 'amt' }, i === 0 ? eur(x.eur) : approx(x.eur)));
       }),
       h('p', { class: 'small' }, 'Poate ieși puțin mai mult sau puțin mai puțin: depinde de cum merge bursa și de cursul leului.')) : null,
-    giftsSection(model, { canAdd: app.canEdit('iza') }),
+    giftsSection(model, { canAdd: app.canEdit('iza'), today: app.today() }),
     school(plan ? plan.params.etfRateBp : 700),
     didYouKnow(),
     h('p', { class: 'small', style: 'margin:16px' }, upd ? `Situația din ${fullDate(upd)}. Cifrele pentru viitor sunt estimări, nu promisiuni.` : 'Cifrele pentru viitor sunt estimări, nu promisiuni.'),

@@ -1,6 +1,7 @@
 import { h } from '../dom.js';
 import { formatWhole } from '../money.js';
-import { liveGifts, totalsByCurrency, byGiver, byYear, formatGiftDate } from '../gifts.js';
+import { CURRENCIES, liveGifts, totalsByCurrency, giverShares, byYear, formatGiftDate } from '../gifts.js';
+import { toRon } from '../calc.js';
 import { countUp, growOnView, pop } from './kid-fun.js';
 
 // "Darurile mele": the playful face of the Primite log, inside Iza's screen. A journal of who gave what, not a place
@@ -21,7 +22,10 @@ function giftCard(g, color) {
     h('span', { class: 'amt' }, '+' + amount(g.amount_minor, g.currency)));
 }
 
-export function giftsSection(model, { canAdd = false } = {}) {
+// "23.500 lei + 500 €": every currency a person gave in
+const amounts = (parts) => parts.map((p) => amount(p.minor, p.currency)).join(' + ');
+
+export function giftsSection(model, { canAdd = false, today } = {}) {
   const all = liveGifts(model);
   if (!all.length && !canAdd) return null;
   const totals = totalsByCurrency(all);
@@ -29,11 +33,14 @@ export function giftsSection(model, { canAdd = false } = {}) {
   const others = totals.filter((t) => t.currency !== 'RON');
   const people = new Set(all.map((g) => g.giver)).size;
 
-  // the bar: the ten biggest givers (in lei) and the rest together
-  const ranked = lei ? byGiver(all, 'RON') : [];
+  // the bar: the ten biggest givers and the rest together. Shares count euro and dollars in lei at the latest rate in the
+  // file; someone who gave once and less than 10 lei is left out (giverShares)
+  const toLei = (minor, ccy) => { try { return toRon(minor, ccy, model.rates || [], today || '9999-12-31'); } catch (e) { return ccy === 'RON' ? minor : 0; } };
+  const ranked = giverShares(all, toLei);
   const top = ranked.slice(0, COLORS.length), rest = ranked.slice(COLORS.length);
-  const parts = [...top.map((p, i) => ({ label: p.giver, share: p.share, minor: p.minor, color: COLORS[i] })),
-    ...(rest.length ? [{ label: 'Alții', share: rest.reduce((s, p) => s + p.share, 0), minor: rest.reduce((s, p) => s + p.minor, 0), color: OTHERS_COLOR }] : [])];
+  const mergeParts = (rows) => { const m = new Map(); for (const r of rows) for (const p of r.parts) m.set(p.currency, (m.get(p.currency) || 0) + p.minor); return [...m.entries()].map(([currency, minor]) => ({ currency, minor })).sort((a, b) => CURRENCIES.indexOf(a.currency) - CURRENCIES.indexOf(b.currency)); };
+  const parts = [...top.map((p, i) => ({ label: p.giver, share: p.share, parts: p.parts, color: COLORS[i] })),
+    ...(rest.length ? [{ label: 'Alții', share: rest.reduce((s, p) => s + p.share, 0), parts: mergeParts(rest), color: OTHERS_COLOR }] : [])];
   const colorOf = new Map(top.map((p, i) => [p.giver, COLORS[i]]));
 
   const totalEl = h('span', { class: 'v' }, lei ? amount(0, 'RON') : '');
@@ -72,6 +79,6 @@ export function giftsSection(model, { canAdd = false } = {}) {
     parts.length ? h('section', { class: 'colors' },
       h('div', { class: 'stackbar', role: 'img', 'aria-label': 'Cât ai primit de la fiecare' },
         ...parts.map((p) => { const seg = h('div', { style: `background:${p.color}` }); growOnView(seg, Math.max(3, p.share * 100) + '%'); return seg; })),
-      h('div', { class: 'legend' }, ...parts.map((p) => h('span', {}, h('i', { style: `background:${p.color}` }), `${p.label} · ${Math.round(p.share * 100)}%`, h('b', { class: 'mono' }, amount(p.minor, 'RON')))))) : null,
+      h('div', { class: 'legend' }, ...parts.map((p) => h('span', {}, h('i', { style: `background:${p.color}` }), `${p.label} · ${Math.round(p.share * 100)}%`, h('b', { class: 'mono' }, amounts(p.parts)))))) : null,
     list, toggle);
 }

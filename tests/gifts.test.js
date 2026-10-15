@@ -1,5 +1,5 @@
 import { test, eq } from './harness.js';
-import { parseGiftDate, formatGiftDate, liveGifts, totalsByCurrency, byGiver, byYear, suggestions, giftFromForm, parseCsv, giftsFromCsv, OTHER } from '../js/gifts.js';
+import { parseGiftDate, formatGiftDate, liveGifts, totalsByCurrency, byGiver, giverShares, byYear, suggestions, giftFromForm, parseCsv, giftsFromCsv, OTHER } from '../js/gifts.js';
 
 // invented people and amounts only
 const g = (date, giver, amount_minor, currency = 'RON', extra = {}) => ({ date, giver, amount_minor, currency, reason: '', void: false, ...extra });
@@ -62,4 +62,15 @@ test('giftsFromCsv: converts rows, turns a period into its last year and reports
   eq(r.fields[0], { date: '2025-10', giver: 'A', amount_minor: 20000, currency: 'RON', reason: 'Paște', note: 'un cadou, mic' });
   eq(r.fields[1], { date: '2016', giver: 'B', amount_minor: 8250, currency: 'RON', reason: '', note: 'perioada 2015-feb 2016' });
   eq(giftsFromCsv('x,y\n1,2').errors.length, 1);
+});
+
+test('giverShares: euro counted in lei at the given rate, amounts kept per currency, tiny one-time givers left out', () => {
+  const toRon = (minor, c) => (c === 'EUR' ? minor * 5 : minor); // invented rate: 1 EUR = 5 lei
+  const list = [g('2025-01', 'A', 10000), g('2025-02', 'A', 1000, 'EUR'), g('2025-03', 'B', 5000), g('2025-04', 'C', 700), g('2025-05', 'D', 600), g('2025-06', 'D', 600)];
+  const r = giverShares(list, toRon);
+  eq(r.map((x) => x.giver), ['A', 'B', 'D']); // C gave once, 7 lei: out; D gave twice, so it stays
+  eq(r[0].parts, [{ currency: 'RON', minor: 10000 }, { currency: 'EUR', minor: 1000 }]);
+  eq(r[0].ron, 15000);
+  eq(Math.round(r[0].share * 100), 71); // 15000 of 21200 (C is out of the base)
+  eq(giverShares([], toRon), []);
 });
