@@ -78,8 +78,11 @@ export async function verificareView(app) {
       totalRows.push(row(title, sits.map((s) => lei(s[layer].total) + ' lei'), { sub: 'total' }));
       LAYERS[layer].forEach(([key, label], i) => totalRows.push(row('· ' + label, sits.map((s) => { const v = s[layer].lines[i].ron; return v ? lei(v) : null; }), { dim: true })));
     }
-    totalRows.push(row('WEALTH', sits.map((s) => lei(s.wealth) + ' lei')));
-    totalRows.push(row('≈ în euro', dates.map((d, i) => eurApprox(m, sits[i].wealth, d)), { dim: true }));
+    totalRows.push(row('WEALTH 1', sits.map((s) => lei(s.wealth1) + ' lei'), { sub: 'disponibil + bursă, aur, Gent' }));
+    totalRows.push(row('WEALTH 2', sits.map((s) => lei(s.wealth2) + ' lei'), { sub: 'wealth 1 + imobile' }));
+    totalRows.push(row('≈ wealth 2 în euro', dates.map((d, i) => eurApprox(m, sits[i].wealth2, d)), { dim: true }));
+    totalRows.push(row('· exclus: piloni P2/P3', sits.map((s) => lei(s.excluded.piloni)), { dim: true }));
+    totalRows.push(row('· exclus: împrumuturi date', sits.map((s) => lei(s.excluded.imprumuturi)), { dim: true }));
     const missingRate = dates.some((d) => !m.rates.length || m.rates[0].date > d);
 
     frame(app, {

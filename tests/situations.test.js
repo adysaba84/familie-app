@@ -62,16 +62,19 @@ test('situation: INDISPONIBIL = property + loans given (counted, not touchable)'
   eq(line(s.indisponibil, 'imprumuturi'), 50000); // 100 euro
   eq(s.indisponibil.total, 12550000);
 });
-test('situation: WEALTH = disponibil + pensii + indisponibil', () => {
+test('situation: WEALTH 1 = disponibil + sellable pensii; WEALTH 2 adds property; pillars and loans in neither', () => {
   const s = situation(model, '2026-10-14');
-  eq(s.wealth, 620000 + 1830000 + 12550000);
+  eq(s.wealth1, 620000 + 830000);
+  eq(s.wealth2, 620000 + 830000 + 12500000);
+  eq(s.excluded, { piloni: 1000000, imprumuturi: 50000 });
+  eq(s.wealth, undefined, 'the old total is gone');
 });
 test('situation: a card without a limit is ignored, a past date sees only what existed then', () => {
   const noLimit = situation({ ...model, settings: [] }, '2026-10-14');
   eq(line(noLimit.disponibil, 'carduri'), 0);
   const jan = situation(model, '2026-01-15');
   eq(line(jan.disponibil, 'depozite'), 140000); // deposits started on 1 Jan
-  eq(jan.disponibil.total, 140000); eq(jan.pensii.total, 400000); eq(jan.indisponibil.total, 12500000); eq(jan.wealth, 540000 + 12500000); // deposits and the gold's purchase price existed; property counts at every date
+  eq(jan.disponibil.total, 140000); eq(jan.pensii.total, 400000); eq(jan.indisponibil.total, 12500000); eq(jan.wealth1, 540000); eq(jan.wealth2, 540000 + 12500000); // deposits and the gold's purchase price existed; property counts at every date
 });
 test('situation: property never leaks into the cash or gold layers', () => {
   const s = situation({ ...model, physical_items: [model.physical_items[2]] }, '2026-10-14');
@@ -80,7 +83,7 @@ test('situation: property never leaks into the cash or gold layers', () => {
 test('combine: two spaces add up line by line, native amounts too', () => {
   const a = situation(model, '2026-10-14');
   const c = combine([a, a]);
-  eq(c.wealth, a.wealth * 2); eq(c.disponibil.total, a.disponibil.total * 2);
+  eq(c.wealth1, a.wealth1 * 2); eq(c.wealth2, a.wealth2 * 2); eq(c.excluded.piloni, 2000000); eq(c.disponibil.total, a.disponibil.total * 2);
   eq(line(c.indisponibil, 'imobile'), 25000000); eq(c.disponibil.native.EUR, 60000);
   eq(combine([]), null);
 });
@@ -123,7 +126,7 @@ test('situation: Iza-like model (insurance, no pillars) still works, and combine
   eq(line(iza.pensii, 'piloni'), 0); eq(line(iza.disponibil, 'asigurari'), 200000);
   const c = combine([a, iza]);
   eq(line(c.pensii, 'piloni'), 1000000); eq(c.pensii.total, a.pensii.total + iza.pensii.total);
-  eq(c.wealth, a.wealth + iza.wealth);
+  eq(c.wealth1, a.wealth1 + iza.wealth1); eq(c.wealth2, a.wealth2 + iza.wealth2);
 });
 test('a pension account is a locked pillar unless its institution is a sellable one', () => {
   const m = { ...model, accounts: model.accounts.map((x) => (x.id === 'gent' ? { ...x, institution: 'Pilon 3' } : x)) };

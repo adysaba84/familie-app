@@ -6,7 +6,9 @@ import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMon
 //   PENSII       = "disponibili cu vanzare" (brokers - all instruments, physical gold, Gent: can be sold, not cash) and
 //                  "indisponibili pana la pensie" (pillars 2 and 3)
 //   INDISPONIBIL = property (house, car, garage) and loans given: counted, but cannot be touched right away
-//   WEALTH       = disponibil + pensii + indisponibil
+//   WEALTH 1     = disponibil + pensii disponibili cu vanzare (bursa, aur, Gent)            [no pillars, no loans, no property]
+//   WEALTH 2     = wealth 1 + property (casa, masina, garaj)                                [still no pillars, no loans]
+//   The pillars (P2/P3) and the loans given are shown as EXCLUDED: they are in their layers but in neither wealth.
 // Every number is in RON bani at `asOf` (euro is derived by the caller); disponibil also carries the native amount
 // per currency (lei / euro / dolari), like the Excel "cash lei / cash eur / cash usd".
 const live = (r) => !r.void;
@@ -28,6 +30,14 @@ export const LAYERS = {
   indisponibil: [['imobile', 'Casă, mașină, garaj'], ['imprumuturi', 'Împrumuturi date (nu pot fi atinse imediat)']],
 };
 export const PENSII_SECTIONS = { vanzare: 'Disponibili cu vânzare', pensie: 'Indisponibili până la pensie' };
+// Wealth 1 / 2 and the excluded amounts, from the three layers (also used on combined layers: everything is additive).
+function wealths(disponibil, pensii, indisponibil) {
+  const sellable = pensii.lines.filter((l) => l.section === 'vanzare').reduce((t, l) => t + l.ron, 0);
+  const of = (layer, key) => layer.lines.find((l) => l.key === key).ron;
+  const wealth1 = disponibil.total + sellable;
+  return { wealth1, wealth2: wealth1 + of(indisponibil, 'imobile'), excluded: { piloni: of(pensii, 'piloni'), imprumuturi: of(indisponibil, 'imprumuturi') } };
+}
+
 export const LAYER_TITLES = [['disponibil', 'DISPONIBIL'], ['pensii', 'PENSII'], ['indisponibil', 'INDISPONIBIL']];
 
 function emptyLayer(defs) {
@@ -133,7 +143,7 @@ export function situation(model, asOf) {
     if (which === 'disponibil') addNative(s.currency, s.amount_minor);
   }
 
-  return { asOf, disponibil: { ...disponibil, native }, pensii, indisponibil, wealth: disponibil.total + pensii.total + indisponibil.total };
+  return { asOf, disponibil: { ...disponibil, native }, pensii, indisponibil, ...wealths(disponibil, pensii, indisponibil) };
 }
 
 // Several spaces (e.g. parents + Iza) added together, line by line.
@@ -148,7 +158,7 @@ export function combine(list) {
   for (const x of list) for (const [c, v] of Object.entries(x.disponibil.native)) native[c] = (native[c] || 0) + v;
   const disponibil = { ...merge((x) => x.disponibil), native };
   const pensii = merge((x) => x.pensii), indisponibil = merge((x) => x.indisponibil);
-  return { asOf: list[0].asOf, disponibil, pensii, indisponibil, wealth: disponibil.total + pensii.total + indisponibil.total };
+  return { asOf: list[0].asOf, disponibil, pensii, indisponibil, ...wealths(disponibil, pensii, indisponibil) };
 }
 
 // The comparison dates: the end of last month and the end of last year (start of this year).
