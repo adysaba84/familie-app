@@ -38,6 +38,24 @@ window.__setModels = async (tables) => {
   }
   router.render();
 };
+// `?demo` fills Iza's space with the same invented numbers the tests use (nothing real), so her screen can be seen at once.
+if (new URLSearchParams(location.search).has('demo')) {
+  const s = (key, value) => stamp({ key, value: String(value) });
+  Object.assign(models.iza, {
+    accounts: [
+      { id: 'tv', kind: 'broker', institution: 'Broker', owner: 'X', currency_default: 'RON' },
+      { id: 'bank', kind: 'deposit_bank', institution: 'Bank', owner: 'X', currency_default: 'RON' },
+      { id: 'sav', kind: 'savings', institution: 'Bank', owner: 'X', currency_default: 'RON' },
+      { id: 'nn', kind: 'insurance', institution: 'Insurer', owner: 'X', currency_default: 'RON' }].map(stamp),
+    rates: [stamp({ date: TODAY, EUR: 50000, USD: 45000 })],
+    broker_flows: [stamp({ date: TODAY, account_id: 'tv', currency: 'RON', instrument: 'bonds', amount_minor: 500000, direction: 'in' })],
+    broker_values: [stamp({ date: TODAY, account_id: 'tv', currency: 'RON', instrument: 'stocks_etf', value_minor: 800000 })],
+    deposits: [stamp({ account_id: 'bank', currency: 'EUR', principal_minor: 600000, rate_bp: 200, term_months: 12, start_date: TODAY, maturity_date: '2027-10-14', status: 'active' })],
+    balances: [stamp({ account_id: 'sav', date: TODAY, balance_minor: 200000, rate_bp: 450 }), stamp({ account_id: 'nn', date: TODAY, balance_minor: 3000000, rate_bp: null })],
+    settings: [s('birth_date', '2011-03-05'), s('contrib_nn_ron_month', 30000), s('contrib_etf_ron_month', 40000), s('contrib_savings_ron_month', 25000), s('contrib_family_eur_year', 60000)],
+  });
+  location.hash = '#/iza';
+}
 window.__models = models;
 window.__app = app;
 router.render();

@@ -3,6 +3,8 @@ import { izaBoxes, projectIza, lastUpdate } from '../iza-plan.js';
 import { formatWhole, formatMinor, parseAmount } from '../money.js';
 import { accountBalance } from '../calc.js';
 import { fullDate } from '../ui.js';
+import { daysBetween } from '../calc.js';
+import { pop, countUp, growOnView, plant, colorBar, boxCard, school, didYouKnow, playground } from './kid-fun.js';
 
 // Iza's screen: playful, read-only, one page. Shown to Iza when she signs in (her file is read-only for
 // her, enforced by Google) and to a parent as a preview ("Vezi ca Iza", for as long as her own account
@@ -81,29 +83,47 @@ export async function kidView(app, { asParent = false } = {}) {
   const age = plan ? plan.ageNow : null;
   const max = plan ? Math.max(...plan.ladder.map((x) => x.eur)) : 1;
 
+  const nowEl = h('span', { class: 'v' }, eur(0));
+  const futEl = h('span', { class: 'v' }, '~0 €');
+  const nextB = plan && plan.ladder.length > 1 ? plan.ladder[1] : null;
+  const days = nextB ? Math.max(0, daysBetween(app.today(), nextB.date)) : null;
+  const shown = boxes.boxes.filter((b) => b.eur > 0);
   root.classList.add('kid');
+  requestAnimationFrame(() => {
+    countUp(nowEl, boxes.totalEur, eur);
+    if (plan && plan.atAdult) countUp(futEl, plan.atAdult.eur, approx);
+  });
   mount(
     asParent ? h('div', { class: 'kidbar' }, h('a', { href: '#/active', class: 'back' }, '‹ Înapoi'), h('span', {}, 'Așa vede Iza'),
       h('button', { class: 'pdfbtn', onclick: exportPdf }, 'Descarcă PDF')) : null,
-    h('header', { class: 'kidhead' }, h('h1', {}, 'Banii tăi pentru viitor'),
+    h('header', { class: 'kidhead' }, h('h1', {}, 'Banii tăi pentru viitor ✨'),
       h('p', {}, 'Părinții tăi pun bani deoparte pentru tine de mult timp. Uite ce ai acum, unde sunt banii și cât ar putea să devină.')),
-    h('section', { class: 'hero' },
-      h('div', { class: 'hero-col' }, h('span', { class: 'k' }, age == null ? 'Acum' : `Acum · ${age} ani`), h('span', { class: 'v' }, eur(boxes.totalEur))),
-      plan && plan.atAdult ? [h('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
-        h('div', { class: 'hero-col' }, h('span', { class: 'k' }, `La ${plan.params.adultAge} ani · estimare`), h('span', { class: 'v' }, approx(plan.atAdult.eur)))] : null),
+    h('section', { class: 'hero', role: 'button', tabindex: '0', 'aria-label': 'Atinge pentru confetti', onclick: pop },
+      h('div', { class: 'hero-col' }, h('span', { class: 'k' }, age == null ? 'Acum' : `Acum · ${age} ani`), nowEl),
+      plan && plan.atAdult ? [h('span', { class: 'arrow', 'aria-hidden': 'true' }, '🚀'),
+        h('div', { class: 'hero-col' }, h('span', { class: 'k' }, `La ${plan.params.adultAge} ani · estimare`), futEl)] : null),
+    nextB ? h('div', { class: 'bday' }, h('span', { 'aria-hidden': 'true' }, days === 0 ? '🎂' : '🎈'),
+      h('span', {}, days === 0 ? 'La mulți ani! Azi e ziua ta!' : `Mai sunt ${days} ${days === 1 ? 'zi' : 'zile'} până la ziua ta`)) : null,
     walletSection(app, model, !asParent && app.canEdit('iza')),
     h('h2', { class: 'kidh2' }, 'Unde sunt banii tăi'),
     h('p', { class: 'kidlead' }, 'Banii nu stau toți într-un singur loc. Sunt împărțiți în „cutii”, fiecare cu rolul ei.'),
-    ...boxes.boxes.filter((b) => b.eur > 0).map((b) => h('section', { class: 'box' },
-      h('div', { class: 'between' }, h('b', {}, b.label), h('span', { class: 'amt' }, eur(b.eur))), h('p', {}, b.text))),
+    shown.length ? colorBar(shown) : null,
+    ...shown.map((b) => boxCard(b, boxes.totalEur || 1, eur)),
+    plan && plan.ladder.length > 1 ? playground(plan) : null,
     plan && plan.ladder.length > 1 ? h('section', { class: 'ladder' },
       h('h2', { class: 'kidh2' }, 'Cum cresc până la ' + plan.params.adultAge + ' ani'),
       h('p', { class: 'kidlead' }, 'În fiecare lună se mai adaugă bani, iar banii existenți aduc dobândă. Asta e o estimare pentru fiecare zi de naștere.'),
-      ...plan.ladder.map((x, i) => h('div', { class: 'rung' },
-        h('span', { class: 'age' }, i === 0 ? `Acum` : `${x.age} ani`),
-        h('div', { class: 'rbar' }, h('div', { style: `width:${Math.max(6, Math.round((x.eur * 100) / max))}%` })),
-        h('span', { class: 'amt' }, i === 0 ? eur(x.eur) : approx(x.eur)))),
+      ...plan.ladder.map((x, i, all) => {
+        const fill = h('div', {});
+        growOnView(fill, Math.max(6, Math.round((x.eur * 100) / max)) + '%');
+        return h('div', { class: 'rung' },
+          h('span', { class: 'age' }, `${plant(i, all.length)} ${i === 0 ? 'Acum' : x.age}`),
+          h('div', { class: 'rbar' }, fill),
+          h('span', { class: 'amt' }, i === 0 ? eur(x.eur) : approx(x.eur)));
+      }),
       h('p', { class: 'small' }, 'Poate ieși puțin mai mult sau puțin mai puțin: depinde de cum merge bursa și de cursul leului.')) : null,
+    school(plan ? plan.params.etfRateBp : 700),
+    didYouKnow(),
     h('p', { class: 'small', style: 'margin:16px' }, upd ? `Situația din ${fullDate(upd)}. Cifrele pentru viitor sunt estimări, nu promisiuni.` : 'Cifrele pentru viitor sunt estimări, nu promisiuni.'),
     !asParent ? h('div', { class: 'card' }, h('button', { class: 'secondary', onclick: () => app.logout() }, 'Ieșire')) : null,
   );

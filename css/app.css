@@ -171,6 +171,41 @@ label.f{display:flex;flex-direction:column;gap:6px}
 .rung .amt{text-align:right;font-family:var(--mono);font-weight:600}
 .small{color:var(--muted);font-size:.8rem;margin:8px 16px}
 
+/* Iza: fun layer */
+.kid .hero{cursor:pointer;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(91,63,209,.28)}
+.kid .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-100%);animation:shine 3.6s ease-in-out 1s infinite;pointer-events:none}
+.kid .hero .arrow{animation:float 2.2s ease-in-out infinite}
+.bday{margin:0 16px;padding:10px 14px;border-radius:14px;background:#FFF4D6;color:#7A5A00;font-weight:600;display:flex;gap:10px;align-items:center}
+.colors{margin:10px 16px 0;padding:14px 16px;background:#fff;border:1px solid #D9D1F5;border-radius:16px}
+.colors p{margin:4px 0 10px;color:var(--muted);font-size:.9rem}
+.stackbar{display:flex;height:22px;border-radius:11px;overflow:hidden;background:#EEEAFB}
+.stackbar > div{height:22px;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.legend{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:.88rem}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:14px;height:14px;border-radius:4px;flex:none}
+.share{height:8px;border-radius:4px;background:#EEEAFB;margin-top:8px;overflow:hidden}
+.share > div{height:8px;border-radius:4px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.rbar > div{transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.rung{grid-template-columns:62px 1fr 84px}
+.risk{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:.88rem;font-weight:600}
+.more,.lesson{margin-top:8px}
+.more summary,.lesson summary{cursor:pointer;color:var(--kid);font-weight:700;font-size:.92rem;min-height:32px;display:flex;align-items:center}
+.more p,.lesson p{margin:6px 0;color:var(--ink);font-size:.92rem}
+.school{margin-bottom:8px}
+.lesson{margin:8px 16px 0;padding:8px 14px;background:#fff;border:1px solid #D9D1F5;border-radius:14px}
+.lesson summary{font-size:1rem}
+.fact{margin:16px;padding:14px 16px;border-radius:16px;background:#E8F7F0;color:#14684A}
+.fact p{margin:6px 0 10px;color:var(--ink)}
+.play{margin:16px;padding:14px 16px;border-radius:16px;background:#fff;border:2px dashed #BFB2F2}
+.play input[type=range]{width:100%;margin:10px 0 4px;accent-color:var(--kid);height:32px}
+.play-val{font-weight:700;color:var(--kid)}
+.play-out{font-family:var(--mono);font-size:1.3rem;color:#1E9E6A}
+.confetti{position:fixed;width:9px;height:14px;border-radius:2px;pointer-events:none;z-index:99;animation:burst 1.2s cubic-bezier(.15,.7,.3,1) forwards}
+@keyframes burst{to{transform:translate(var(--dx),calc(var(--dy) + 220px)) rotate(var(--r));opacity:0}}
+@keyframes shine{60%,100%{transform:translateX(100%)}}
+@keyframes float{50%{transform:translateX(5px) translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.kid .hero::after,.kid .hero .arrow{animation:none}.share > div,.rbar > div,.stackbar > div{transition:none}}
+
 .kidlink{background:#EEEAFB;border-color:#D9D1F5;color:var(--kid);font-weight:600;text-decoration:none}
 .pdfbtn{min-height:34px;padding:0 12px;border-radius:17px;background:var(--kid);color:#fff;font-size:13px}
 @media print{
@@ -179,6 +214,8 @@ label.f{display:flex;flex-direction:column;gap:6px}
   main{max-width:none;padding:0;min-height:0}
   .hero,.rbar,.rbar>div,.box{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .box,.rung,.hero{break-inside:avoid}
+  .play,.fact,.confetti,.hero::after{display:none!important}
+  .more:not([open]) > *:not(summary){display:none}
 }
 
 /* verification page: label + three date columns */
