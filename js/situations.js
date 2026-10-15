@@ -179,3 +179,36 @@ export function historyStart(model) {
 // change of 0, whatever the rate did in between (dividing a lei difference by today's rate would count the rate move).
 export const eurGrowth = (rates, nowRon, nowDate, thenRon, thenDate) =>
   fromRon(nowRon, 'EUR', rates, nowDate) - fromRon(thenRon, 'EUR', rates, thenDate);
+
+// The four segments of the wealth structure, from the SAME situation(): disponibil, pensii disponibili cu vanzare,
+// pensii indisponibili pana la pensie (pillars), indisponibil (property + loans). They add up to the old "everything" total.
+export function wealthStructure(sit) {
+  const sellable = sit.pensii.lines.filter((l) => l.section === 'vanzare').reduce((t, l) => t + l.ron, 0);
+  const pillars = sit.pensii.lines.filter((l) => l.section === 'pensie').reduce((t, l) => t + l.ron, 0);
+  return [
+    { key: 'disponibil', label: 'Disponibil', ron: sit.disponibil.total },
+    { key: 'vanzare', label: 'Pensii · cu vânzare', ron: sellable },
+    { key: 'pensie', label: 'Pensii · până la pensie', ron: pillars },
+    { key: 'indisponibil', label: 'Indisponibil', ron: sit.indisponibil.total },
+  ];
+}
+
+// Dates for the Wealth 1 evolution: only days with real entries (at least `min` balance / broker value / physical value
+// records dated exactly that day: a full update, not one stray value) plus today. No interpolation, no invented months.
+export function wealthDates(model, today, min = 3) {
+  const count = new Map();
+  for (const k of ['balances', 'broker_values', 'physical_values']) {
+    for (const r of model[k] || []) if (live(r) && r.date && r.date <= today) count.set(r.date, (count.get(r.date) || 0) + 1);
+  }
+  const dates = [...count].filter(([, n]) => n >= min).map(([d]) => d);
+  if (!dates.includes(today)) dates.push(today);
+  return dates.sort();
+}
+export const wealthSeries = (model, today) => wealthDates(model, today).map((date) => ({ date, ron: situation(model, date).wealth1 }));
+
+// True when the first point predates the first deposit entered one by one: there the deposits come from savings accounts
+// or Excel totals, so the step to the next point partly reflects the data arriving, not growth.
+export function seriesStartsBeforeDeposits(model, series) {
+  const starts = (model.deposits || []).filter((d) => !d.void && d.start_date).map((d) => d.start_date).sort();
+  return !!series.length && !!starts.length && series[0].date < starts[0];
+}

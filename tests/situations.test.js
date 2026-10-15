@@ -1,5 +1,5 @@
 import { test, eq, ok } from './harness.js';
-import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS, eurGrowth } from '../js/situations.js';
+import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS, eurGrowth, wealthStructure, wealthDates, wealthSeries, seriesStartsBeforeDeposits } from '../js/situations.js';
 
 // Invented family (round numbers): EUR = 5 RON, USD = 4 RON.
 const rates = [{ date: '2026-01-01', EUR: 50000, USD: 40000 }];
@@ -138,4 +138,27 @@ test('eurGrowth: euro change uses each date\'s own rate (unchanged euro = 0, not
   const r = [{ date: '2026-09-26', EUR: 50000 }, { date: '2026-10-14', EUR: 55000 }];
   eq(eurGrowth(r, 550000, '2026-10-14', 500000, '2026-09-26'), 0); // 100 euro both times; 50.000 -> 55.000 lei is only the rate
   eq(eurGrowth(r, 605000, '2026-10-14', 500000, '2026-09-26'), 10000); // +10 euro
+});
+
+test('wealthStructure: four segments from the same situation, sums to disponibil + pensii + indisponibil, wealth 1 = first two', () => {
+  const s = situation(model, '2026-10-14');
+  const w = wealthStructure(s);
+  eq(w.map((x) => x.key), ['disponibil', 'vanzare', 'pensie', 'indisponibil']);
+  eq(w.reduce((t, x) => t + x.ron, 0), s.disponibil.total + s.pensii.total + s.indisponibil.total);
+  eq(w[0].ron + w[1].ron, s.wealth1);
+  eq(w[2].ron, s.excluded.piloni);
+});
+test('wealthDates: only days with several real records, plus today; nothing interpolated', () => {
+  const rec = (date) => ({ date });
+  const m = { balances: [rec('2025-12-31'), rec('2025-12-31'), rec('2026-03-10')], broker_values: [rec('2025-12-31'), rec('2026-03-10')], physical_values: [rec('2026-03-10'), rec('2026-02-01'), { date: '2026-03-10', void: true }, rec('2027-01-01')] };
+  eq(wealthDates(m, '2026-04-01'), ['2025-12-31', '2026-03-10', '2026-04-01']); // 02-01 has one record; 2027 is the future
+  eq(wealthDates(m, '2026-03-10'), ['2025-12-31', '2026-03-10']); // today is not added twice
+  eq(wealthDates({}, '2026-04-01'), ['2026-04-01']);
+});
+test('wealthSeries / seriesStartsBeforeDeposits: values per date, warning when the first date predates the deposits', () => {
+  const ser = wealthSeries(model, '2026-10-14');
+  eq(ser[ser.length - 1], { date: '2026-10-14', ron: situation(model, '2026-10-14').wealth1 });
+  eq(seriesStartsBeforeDeposits(model, [{ date: '2025-12-31' }]), true); // deposits in the invented model start 2026-01-01
+  eq(seriesStartsBeforeDeposits(model, [{ date: '2026-01-01' }]), false);
+  eq(seriesStartsBeforeDeposits({ deposits: [] }, [{ date: '2025-12-31' }]), false);
 });

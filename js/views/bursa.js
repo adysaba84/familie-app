@@ -1,7 +1,6 @@
 import { h } from '../dom.js';
-import { brokerSummary, brokerGroups, brokerSeries, daysBetween, STALE_DAYS } from '../calc.js';
-import { investedVsValue } from '../charts.js';
-import { icon, frame, backHead, guarded, loading, lei, signed, pctText, fmtNative, eurApprox, eurSigned } from '../ui.js';
+import { brokerSummary, brokerGroups, daysBetween, STALE_DAYS } from '../calc.js';
+import { icon, frame, backHead, guarded, loading, lei, fmtNative, eurApprox } from '../ui.js';
 
 export const INSTRUMENT_LABEL = { stocks_etf: 'Acțiuni, ETF', bonds: 'Obligațiuni', cash: 'Cash' };
 const INSTR_COLOR = { stocks_etf: '#1F6F5C', bonds: '#4C78A8', cash: '#C9A24A' };
@@ -13,11 +12,9 @@ export async function bursaView(app) {
   return guarded(app, (m) => {
     const today = app.today();
     const s = brokerSummary(m, today);
-    const series = brokerSeries(m, today, 12);
     const rows = brokerGroups(m, today, by);
     const byInstr = brokerGroups(m, today, 'instrument');
     const instrTotal = byInstr.reduce((t, g) => t + g.value, 0);
-    const gainBp = s.investedRon > 0 ? Math.round((s.gainRon * 10000) / s.investedRon) : null;
 
     // sub-line: what the row is made of, with amounts in the row's own currency
     const parts = (g) => g.parts.map((p) => `${INSTRUMENT_LABEL[p.instrument].toLowerCase()} ${fmtNative(p.value, g.currency, { unit: g.currency !== 'RON' })}`).join(' · ');
@@ -30,25 +27,19 @@ export async function bursaView(app) {
 
     const tbl = rows.length === 0
       ? h('p', { class: 'muted', style: 'padding:14px' }, 'Nicio sumă introdusă încă. Începe cu „Sumă investită”.')
-      : h('div', { class: 'tbl' },
-        h('div', { class: 'h' }, h('span', {}, TABS.find((t) => t[0] === by)[1]), h('span', { style: 'text-align:right' }, 'Investit'), h('span', { style: 'text-align:right' }, 'Valoare'), h('span', { style: 'text-align:right' }, '%')),
+      : h('div', { class: 'tbl v2' },
+        h('div', { class: 'h' }, h('span', {}, TABS.find((t) => t[0] === by)[1]), h('span', { style: 'text-align:right' }, 'Valoare')),
         ...rows.flatMap((g) => {
           const [name, sub] = label(g);
           const sd = staleDays(g);
           const old = sd != null && sd > STALE_DAYS;
-          const gainCls = (gain) => (gain < 0 ? 'neg' : gain > 0 ? 'pos' : 'muted');
           const main = h('div', { class: 'r' },
             h('span', { class: 'nm' }, h('b', {}, name), h('span', { class: 'xs ' + (old ? 'neg' : 'muted') }, old ? `valoare veche: ${sd} zile` : sub)),
-            h('span', { class: 'n' }, fmtNative(g.invested, g.currency)), h('span', { class: 'n' }, fmtNative(g.value, g.currency)),
-            h('span', { class: 'n ' + gainCls(g.gain) }, g.gainPctBp == null ? '–' : pctText(g.gainPctBp).replace('%', '')));
+            h('span', { class: 'n' }, fmtNative(g.value, g.currency)));
           // platform rows that hold several instruments get one indented row per instrument
-          const subs = by === 'platform' && g.parts.length > 1 ? g.parts.map((p) => {
-            const bp = p.invested > 0 ? Math.round(((p.value - p.invested) * 10000) / p.invested) : null;
-            return h('div', { class: 'r sub' },
-              h('span', { class: 'nm' }, h('span', {}, INSTRUMENT_LABEL[p.instrument])),
-              h('span', { class: 'n' }, fmtNative(p.invested, g.currency)), h('span', { class: 'n' }, fmtNative(p.value, g.currency)),
-              h('span', { class: 'n ' + gainCls(p.value - p.invested) }, bp == null ? '–' : pctText(bp).replace('%', '')));
-          }) : [];
+          const subs = by === 'platform' && g.parts.length > 1 ? g.parts.map((p) => h('div', { class: 'r sub' },
+            h('span', { class: 'nm' }, h('span', {}, INSTRUMENT_LABEL[p.instrument])),
+            h('span', { class: 'n' }, fmtNative(p.value, g.currency)))) : [];
           return [main, ...subs];
         }));
 
@@ -57,17 +48,9 @@ export async function bursaView(app) {
       head: backHead('#/active', 'Bursă', h('span', { class: 'sm muted', style: 'padding-right:6px' }, (app.space === 'iza' ? 'Iza' : 'Părinți') + ' · valori azi')),
       body: [
         h('section', { class: 'panel' },
-          h('div', { class: 'stat3' },
-            h('div', {}, h('span', { class: 'up xs' }, 'Investit'), h('b', {}, lei(s.investedRon)), h('span', { class: 'xs muted' }, eurApprox(m, s.investedRon, today))),
-            h('div', {}, h('span', { class: 'up xs' }, 'Valoare'), h('b', {}, lei(s.valueRon)), h('span', { class: 'xs muted' }, eurApprox(m, s.valueRon, today))),
-            h('div', {}, h('span', { class: 'up xs' }, 'Câștig'), h('b', { class: s.gainRon < 0 ? 'neg' : 'pos' }, signed(s.gainRon)),
-              h('span', { class: 'xs ' + (s.gainRon < 0 ? 'neg' : 'pos') }, pctText(gainBp)), h('span', { class: 'xs muted' }, eurSigned(m, s.gainRon, today)))),
-          s.investedRon || s.valueRon ? investedVsValue(series) : null,
-          h('div', { class: 'between xs muted' },
-            h('span', { style: 'display:flex;gap:12px' },
-              h('span', { style: 'display:flex;align-items:center;gap:5px' }, h('i', { style: 'width:14px;height:3px;background:#1F6F5C;display:inline-block' }), 'valoare'),
-              h('span', { style: 'display:flex;align-items:center;gap:5px' }, h('i', { style: 'width:14px;border-top:2px dashed #5B6661;display:inline-block' }), 'investit')),
-            h('span', { class: 'mono' }, 'ultimele 12 luni'))),
+          h('div', {}, h('span', { class: 'up xs' }, 'Valoare'), h('b', { style: 'font-size:22px' }, lei(s.valueRon), ' ', h('small', { class: 'muted', style: 'font-size:13px;font-weight:400' }, 'lei')),
+            h('span', { class: 'xs muted mono' }, eurApprox(m, s.valueRon, today)),
+            h('span', { class: 'xs muted' }, 'Fără câștig sau randament până avem depunerile cu data reală.'))),
         h('div', { class: 'seg', style: 'grid-template-columns:repeat(3,minmax(0,1fr))', role: 'tablist', 'aria-label': 'Grupare' },
           ...TABS.map(([k, name]) => h('button', { role: 'tab', 'aria-selected': String(by === k), class: by === k ? 'on' : '', onclick: () => { by = k; app.rerender(); } }, name))),
         h('section', { class: 'panel flush' }, tbl),

@@ -374,7 +374,7 @@ export function currencyBreakdown(model, asOf) {
   const acc = new Map(model.accounts.map((a) => [a.id, a]));
   for (const b of latestBy(model.balances, (r) => r.account_id, asOf).values()) {
     const a = acc.get(b.account_id);
-    if (a) add(a.currency_default, b.balance_minor);
+    if (a && !OFF_ACTIVE_KINDS.includes(a.kind)) add(a.currency_default, b.balance_minor); // pensions, loans, cards are Situatii only
   }
   const pv = latestBy(model.physical_values, (v) => v.item_id, asOf);
   for (const it of model.physical_items) {

@@ -11,46 +11,31 @@ export function fmtK(minor, signed = true) {
   return (k < 0 ? '−' : signed && k > 0 ? '+' : '') + t;
 }
 
-// Monthly change bars: green up, red down, the current month darker, labels on the extremes.
-export function monthlyBars(changes, { width = 326, height = 124 } = {}) {
-  const n = changes.length;
-  const maxPos = Math.max(0, ...changes.map((c) => c.delta));
-  const maxNeg = Math.max(0, ...changes.map((c) => -c.delta));
-  const top = 16, bottom = 28;
-  const plot = height - top - bottom;
-  const range = maxPos + maxNeg || 1;
-  const scale = plot / range;
-  const y0 = top + maxPos * scale;
-  const step = width / n, bw = Math.min(18, step - 4);
-  const best = changes.reduce((b, c, i) => (c.delta > changes[b].delta ? i : b), 0);
-  const worst = changes.reduce((b, c, i) => (c.delta < changes[b].delta ? i : b), 0);
-
-  const kids = [svg('line', { x1: 0, y1: y0, x2: width, y2: y0, stroke: '#5B6661' })];
-  changes.forEach((c, i) => {
-    const x = i * step + (step - bw) / 2;
-    const h = Math.abs(c.delta) * scale;
-    const isLast = i === n - 1;
-    kids.push(svg('rect', {
-      x, y: c.delta >= 0 ? y0 - h : y0, width: bw, height: Math.max(h, c.delta === 0 ? 0 : 1), rx: 2,
-      fill: c.delta < 0 ? '#B3412E' : isLast ? '#1F6F5C' : '#5FA48F',
-    }));
-    const cx = x + bw / 2;
-    const label = (txt, y, fill, bold) => kids.push(svg('text', {
-      x: cx, y, 'text-anchor': i === n - 1 ? 'end' : 'middle', 'font-size': 9, fill, 'font-weight': bold ? 600 : 400,
-    }, txt));
-    if (c.delta < 0 && i === worst) label(fmtK(c.delta), y0 + h + 10, '#B3412E');
-    else if (i === best && c.delta > 0 && !isLast) label(fmtK(c.delta), y0 - h - 3, '#16201C');
-    if (isLast && c.delta !== 0) label(fmtK(c.delta), c.delta > 0 ? y0 - h - 3 : y0 + h + 10, c.delta < 0 ? '#B3412E' : '#1F6F5C', true);
-    kids.push(svg('text', {
-      x: cx, y: height - 4, 'text-anchor': 'middle', 'font-size': 9,
-      fill: isLast ? '#16201C' : '#5B6661', 'font-weight': isLast ? 600 : 400,
-    }, monthLabel(c.month)));
+// Wealth 1 over the dates that have real entries: dots on a line, x proportional to the actual date (no monthly
+// buckets, no interpolation). Value labels in thousands above the dots, dates below.
+export function wealthLine(points, { width = 326, height = 124 } = {}) {
+  const ms = (d) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  const lo = Math.min(...points.map((p) => p.ron)), hi = Math.max(...points.map((p) => p.ron));
+  const pad = (hi - lo) * 0.15 || Math.abs(hi) * 0.1 || 1;
+  const min = lo - pad, max = hi + pad;
+  const left = 22, right = 42, top = 20, bottom = 36;
+  const t0 = ms(points[0].date), span = ms(points[points.length - 1].date) - t0;
+  const x = (p, i) => (points.length === 1 || !span ? width / 2 : left + ((ms(p.date) - t0) / span) * (width - left - right));
+  const y = (v) => top + (1 - (v - min) / (max - min)) * (height - top - bottom);
+  const kids = [svg('line', { x1: 0, y1: height - bottom + 6, x2: width, y2: height - bottom + 6, stroke: '#D5DAD6' })];
+  if (points.length > 1) kids.push(svg('path', { d: 'M' + points.map((p, i) => `${x(p, i).toFixed(1)},${y(p.ron).toFixed(1)}`).join(' L'), fill: 'none', stroke: '#1F6F5C', 'stroke-width': 2.2, 'stroke-linejoin': 'round' }));
+  points.forEach((p, i) => {
+    const cx = x(p, i), last = i === points.length - 1;
+    kids.push(svg('circle', { cx, cy: y(p.ron), r: 4, fill: last ? '#1F6F5C' : '#FFFFFF', stroke: '#1F6F5C', 'stroke-width': 2 }));
+    const anchor = i === 0 && points.length > 1 ? 'start' : last && points.length > 1 ? 'end' : 'middle';
+    const tx = anchor === 'start' ? cx - 6 : anchor === 'end' ? cx + 6 : cx;
+    // a point close to the previous one: value label to the right of its dot and date on a second row, so labels never overlap
+    const near = i > 0 && cx - x(points[i - 1], i - 1) < 50;
+    const nextNear = i < points.length - 1 && x(points[i + 1], i + 1) - cx < 50;
+    kids.push(svg('text', { x: near ? cx + 8 : nextNear ? cx - 6 : tx, y: near ? y(p.ron) + 3 : y(p.ron) - 8, 'text-anchor': near ? 'start' : nextNear ? 'end' : anchor, 'font-size': 9, fill: '#16201C', 'font-weight': last ? 600 : 400 }, fmtK(p.ron, false) + 'k'));
+    kids.push(svg('text', { x: tx, y: near ? height - 16 : height - 6, 'text-anchor': anchor, 'font-size': 9, fill: last ? '#16201C' : '#5B6661', 'font-weight': last ? 600 : 400 }, `${Number(p.date.slice(8, 10))} ${monthLabel(p.date)}`));
   });
-  const up = changes.filter((c) => c.delta > 0).length;
-  return svg('svg', {
-    class: 'chart', role: 'img', viewBox: `0 0 ${width} ${height}`,
-    'aria-label': `Creșterea lunară: pozitivă în ${up} din ${n} luni`,
-  }, kids);
+  return svg('svg', { class: 'chart', role: 'img', viewBox: `0 0 ${width} ${height}`, 'aria-label': `Wealth 1 la ${points.length} date cu înregistrări reale` }, kids);
 }
 
 // Invested (dashed) vs value (solid) over time, RON.
