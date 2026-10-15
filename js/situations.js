@@ -1,4 +1,4 @@
-import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
+import { toRon, fromRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
 
 // "Situații": the family position in layers. PURE (no DOM, no network).
 //   DISPONIBIL   = cash: current accounts, wallets, vouchers, savings, deposits, cash in the safe, credit cards counted
@@ -174,3 +174,8 @@ export function historyStart(model) {
   return dates.sort()[0] || null;
 }
 
+
+// Change in euro between two dates, each amount converted at the rate of ITS OWN date: an unchanged euro amount is a
+// change of 0, whatever the rate did in between (dividing a lei difference by today's rate would count the rate move).
+export const eurGrowth = (rates, nowRon, nowDate, thenRon, thenDate) =>
+  fromRon(nowRon, 'EUR', rates, nowDate) - fromRon(thenRon, 'EUR', rates, thenDate);

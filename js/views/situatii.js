@@ -1,7 +1,7 @@
 import { h } from '../dom.js';
-import { situation, combine, comparisonDates, historyStart, PENSII_SECTIONS } from '../situations.js';
+import { situation, combine, comparisonDates, historyStart, PENSII_SECTIONS, eurGrowth } from '../situations.js';
 import { formatWhole } from '../money.js';
-import { frame, backHead, guarded, loading, lei, signed, eurApprox, eurSigned, fullDate, shortDate } from '../ui.js';
+import { frame, backHead, guarded, loading, lei, signed, eurOf, fullDate, shortDate } from '../ui.js';
 
 // Situații: DISPONIBIL (cash) / PENSII / INDISPONIBIL; WEALTH 1 and 2, now versus the end of last month or the
 // end of last year, for Părinți, Iza or the whole family. Euro next to every lei amount.
@@ -38,9 +38,15 @@ export async function situatiiView(app) {
       return { diff, pct, cls: diff < 0 ? 'neg' : diff > 0 ? 'pos' : 'muted' };
     };
     const pctText = (p) => (p == null ? '' : ` (${p > 0 ? '+' : p < 0 ? '−' : ''}${(Math.abs(p) / 100).toFixed(1).replace('.', ',')}%)`);
+    // Euro: every amount at the rate of ITS OWN date (today's value at today's rate, the old value at the comparison
+    // date's rate), so a euro difference is real growth in euro, not a rate move on unchanged euro / dollar amounts.
+    const eNow = (ron) => eurOf(rm, ron, today);
+    const eurTxt = (ron) => `≈ ${formatWhole(eNow(ron))} €`;
+    const eurDelta = (now, then) => eurGrowth(rm.rates, now, today, then, cmpDate);
+    const eurSignedTxt = (x) => (Math.abs(x) < 50 ? '0 €' : `${signed(x)} €`);
     const deltaLine = (now, then) => {
       const d = delta(now, then);
-      return h('span', { class: 'xs ' + d.cls }, `${d.diff === 0 ? '0' : signed(d.diff)} lei${pctText(d.pct)} · ${eurSigned(rm, d.diff, today)}`);
+      return h('span', { class: 'xs ' + d.cls }, `${d.diff === 0 ? '0' : signed(d.diff)} lei${pctText(d.pct)} · ${eurSignedTxt(eurDelta(now, then))}`);
     };
 
     const seg = (items, current, onPick, cols) => h('div', { class: 'seg', style: `grid-template-columns:repeat(${cols},minmax(0,1fr))` },
@@ -52,23 +58,30 @@ export async function situatiiView(app) {
       if (!c.lines.some((l) => l.section)) return [{ title: null, rows }];
       return Object.entries(PENSII_SECTIONS).map(([k, title]) => {
         const rs = rows.filter(({ l }) => l.section === k);
-        return { title, rows: rs, total: rs.reduce((t, { l }) => t + l.ron, 0) };
+        return { title, rows: rs, total: rs.reduce((t, { l }) => t + l.ron, 0), was: rs.reduce((t, { was }) => t + was, 0) };
       }).filter((x) => x.rows.length);
+    };
+
+    // one category line: lei and the change in lei, then (small, mono) the euro value and the change in euro
+    const lineRows = (label, now, then, strong) => {
+      const d = delta(now, then), de = eurDelta(now, then);
+      const cell = (text, cls = '', style = '') => h('span', { class: cls, style }, text);
+      const grid = 'display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;';
+      return [
+        h('div', { style: grid + `font-size:${strong ? 12 : 13}px;${strong ? 'font-weight:600;margin-top:6px' : ''}` },
+          cell(label, strong ? 'up' : ''), cell(lei(now), 'mono'), cell(d.diff === 0 ? '·' : signed(d.diff), 'xs mono ' + d.cls, 'min-width:64px;text-align:right')),
+        h('div', { class: 'xs muted mono', style: grid + 'margin-top:-3px' },
+          cell(''), cell(eurTxt(now)), cell(Math.abs(de) < 50 ? '·' : eurSignedTxt(de), de <= -50 ? 'neg' : de >= 50 ? 'pos' : '', 'min-width:64px;text-align:right')),
+      ];
     };
 
     const layerCard = (title, sub, c, p, extra) => h('section', { class: 'panel', style: 'gap:8px' },
       h('div', { class: 'between' }, h('div', { style: 'display:flex;flex-direction:column' }, h('b', { style: 'font-size:1rem' }, title), h('span', { class: 'xs muted' }, sub)),
-        h('div', { style: 'display:flex;flex-direction:column;align-items:flex-end' }, h('span', { class: 'mono', style: 'font-size:18px;font-weight:600;white-space:nowrap' }, lei(c.total) + ' lei'), h('span', { class: 'xs muted mono' }, eurApprox(rm, c.total, today)))),
+        h('div', { style: 'display:flex;flex-direction:column;align-items:flex-end' }, h('span', { class: 'mono', style: 'font-size:18px;font-weight:600;white-space:nowrap' }, lei(c.total) + ' lei'), h('span', { class: 'xs muted mono' }, eurTxt(c.total)))),
       deltaLine(c.total, p.total),
       h('div', { class: 'sep stack', style: 'gap:4px;margin-top:4px;padding-top:8px' }, ...bySection(c, p).flatMap((sec) => [
-        sec.title ? h('div', { style: 'display:flex;justify-content:space-between;margin-top:6px;font-size:12px;font-weight:600' },
-          h('span', { class: 'up' }, sec.title), h('span', { class: 'mono' }, lei(sec.total))) : null,
-        ...sec.rows.map(({ l, was }) => {
-          const d = delta(l.ron, was);
-          return h('div', { style: 'display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;font-size:13px' },
-            h('span', {}, l.label), h('span', { class: 'mono' }, lei(l.ron)),
-            h('span', { class: 'xs mono ' + d.cls, style: 'min-width:64px;text-align:right' }, d.diff === 0 ? '·' : signed(d.diff)));
-        })]),
+        ...(sec.title ? lineRows(sec.title, sec.total, sec.was, true) : []),
+        ...sec.rows.flatMap(({ l, was }) => lineRows(l.label, l.ron, was, false))]),
         extra));
 
     const n = cur.disponibil.native;
@@ -81,8 +94,9 @@ export async function situatiiView(app) {
       return h('div', { style: 'display:flex;flex-direction:column;gap:2px;min-width:0' },
         h('span', { class: 'up' }, title), h('span', { class: 'xs muted' }, sub),
         h('div', { class: 'big-num', style: 'font-size:24px' }, lei(now), ' ', h('small', {}, 'lei')),
-        h('span', { class: 'xs muted mono' }, eurApprox(rm, now, today)),
-        h('span', { class: 'xs ' + d.cls, style: 'font-weight:600' }, `${d.diff === 0 ? '0' : signed(d.diff)} lei${pctText(d.pct)}`));
+        h('span', { class: 'xs muted mono' }, eurTxt(now)),
+        h('span', { class: 'xs ' + d.cls, style: 'font-weight:600' }, `${d.diff === 0 ? '0' : signed(d.diff)} lei${pctText(d.pct)}`),
+        h('span', { class: 'xs mono ' + d.cls }, eurSignedTxt(eurDelta(now, then))));
     };
     frame(app, {
       tab: 'situatii',
@@ -95,15 +109,15 @@ export async function situatiiView(app) {
           h('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px' },
             wealthBlock('Wealth 1', 'disponibil + bursă, aur, Gent', cur.wealth1, past.wealth1),
             wealthBlock('Wealth 2', 'wealth 1 + casă, mașină, garaj', cur.wealth2, past.wealth2)),
-          h('span', { class: 'xs muted' }, `${CMP[cmp]}: ${fullDate(cmpDate)} · wealth 2: ${eurSigned(rm, cur.wealth2 - past.wealth2, today)}`),
+          h('span', { class: 'xs muted' }, `${CMP[cmp]}: ${fullDate(cmpDate)} · euro la cursul fiecărei date`),
           h('div', { class: 'sep stack xs muted', style: 'gap:2px;padding-top:6px' },
             h('span', {}, 'Excluse din ambele (nu pot fi atinse imediat):'),
-            h('span', { class: 'mono' }, `Pilon 2 și 3: ${lei(cur.excluded.piloni)} lei · Împrumuturi date: ${lei(cur.excluded.imprumuturi)} lei`)),
+            h('span', { class: 'mono' }, `Pilon 2 și 3: ${lei(cur.excluded.piloni)} lei (${eurTxt(cur.excluded.piloni)}) · Împrumuturi date: ${lei(cur.excluded.imprumuturi)} lei (${eurTxt(cur.excluded.imprumuturi)})`)),
           incomplete ? h('span', { class: 'xs neg', style: 'margin-top:4px' }, `Istoricul începe la ${fullDate(first)}: diferențele includ intrarea datelor în aplicație, nu doar creșterea.`) : null),
         layerCard('Disponibil', 'cash: conturi, depozite, seif, carduri', cur.disponibil, past.disponibil, nativeLine),
         layerCard('Pensii', 'bursă, aur, Gent (se pot vinde) și pilonii (blocați până la pensie)', cur.pensii, past.pensii, null),
         layerCard('Indisponibil', 'casă, mașină, garaj și împrumuturi date: nu pot fi atinse imediat', cur.indisponibil, past.indisponibil, null),
-        h('p', { class: 'xs muted', style: 'margin:12px 16px' }, 'Wealth 1 = disponibil + pensii cu vânzare; Wealth 2 = wealth 1 + imobile. Pilonii și împrumuturile date nu intră în niciunul. Cursul: BNR din ziua respectivă (sau cel mai recent). Pensiile, împrumuturile date și cardurile de credit apar după ce le adăugăm.'),
+        h('p', { class: 'xs muted', style: 'margin:12px 16px' }, 'Wealth 1 = disponibil + pensii cu vânzare; Wealth 2 = wealth 1 + imobile. Pilonii și împrumuturile date nu intră în niciunul. Euro: fiecare sumă la cursul BNR din ziua ei (sau cel mai recent), deci diferența în euro nu include mișcarea cursului. Pensiile, împrumuturile date și cardurile de credit apar după ce le adăugăm.'),
       ],
     });
   });

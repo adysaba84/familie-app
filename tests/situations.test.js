@@ -1,5 +1,5 @@
 import { test, eq, ok } from './harness.js';
-import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS } from '../js/situations.js';
+import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS, eurGrowth } from '../js/situations.js';
 
 // Invented family (round numbers): EUR = 5 RON, USD = 4 RON.
 const rates = [{ date: '2026-01-01', EUR: 50000, USD: 40000 }];
@@ -132,4 +132,10 @@ test('a pension account is a locked pillar unless its institution is a sellable 
   const m = { ...model, accounts: model.accounts.map((x) => (x.id === 'gent' ? { ...x, institution: 'Pilon 3' } : x)) };
   const s = situation(m, '2026-10-14');
   eq(line(s.pensii, 'gent'), 0); eq(line(s.pensii, 'piloni'), 1030000);
+});
+
+test('eurGrowth: euro change uses each date\'s own rate (unchanged euro = 0, not a rate effect)', () => {
+  const r = [{ date: '2026-09-26', EUR: 50000 }, { date: '2026-10-14', EUR: 55000 }];
+  eq(eurGrowth(r, 550000, '2026-10-14', 500000, '2026-09-26'), 0); // 100 euro both times; 50.000 -> 55.000 lei is only the rate
+  eq(eurGrowth(r, 605000, '2026-10-14', 500000, '2026-09-26'), 10000); // +10 euro
 });
