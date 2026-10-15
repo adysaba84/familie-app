@@ -6,7 +6,7 @@ Actualizat la 2026-10-15 (proiect pus pe pauză după „Primite”). Mută o li
 M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, depozite cu închidere și prelungire, Venituri și cheltuieli, Sume investite, ecranul lui Iza (cu educație financiară), „Primite” (jurnal de daruri, adulți și „Darurile mele” în modul copil), notificări Calendar (buton .ics și evenimente puse prin conectorul Google Calendar), previzualizare cu date inventate. Datele reale sunt importate în ambele foi și validate cu Excelul vechi (M7).
 
 ## De făcut / deschis
-1. **Cheia API din Google Cloud**: confirmă restricțiile (referreri + doar Picker). Doar utilizatorul le poate vedea (vezi `SECURITATE.md`).
+1. **Cheia API din Google Cloud** (verificat în consolă la 2026-10-15, doar citire): cheia „familie-app picker” e limitată la **Google Picker API**, dar „Application restrictions” = **None**. De făcut de utilizator: Credentials → cheia → Application restrictions → **Websites** → `https://adysaba84.github.io/*` și `http://localhost:8080/*` → Save (efect în ~5 minute). Verificate OK: consimțământ In production/External (3 utilizatori), un singur client OAuth cu originile `https://adysaba84.github.io` și `http://localhost:8080`, fără redirect URI, fără conturi de serviciu.
 2. **Calendar la depozite noi sau prelungite**: evenimentele din 15 oct sunt statice. Opțiuni: le cere din nou lui Claude când se schimbă un depozit, sau instalează Apps Script (`apps-script/README.md`, opțional, îl instalează Ady) pentru sincronizare automată.
 3. **Curs BNR automat**: `bnr.ro` nu dă XML de pe calculatorul de dezvoltare; până atunci, manual. Scriptul Apps Script îl rezolvă dacă e instalat.
 4. **`.gitignore`**: adaugă `*.json` exporturi, `.clasp.json`, `.claude/`.
