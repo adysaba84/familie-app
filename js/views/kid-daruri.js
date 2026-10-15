@@ -5,7 +5,7 @@ import { countUp, growOnView, pop } from './kid-fun.js';
 
 // "Darurile mele": the playful face of the Primite log, inside Iza's screen. A journal of who gave what, not a place
 // where money sits (the money is already in her boxes above), so it never says "cutie". Read-only.
-const COLORS = ['#5B3FD1', '#FF8A3D', '#2FB67C', '#E9578B', '#38A9F0', '#F5B82E'];
+const COLORS = ['#5B3FD1', '#FF8A3D', '#2FB67C', '#E9578B', '#38A9F0', '#F5B82E', '#8E5BD9', '#1FA3A3', '#D9534F', '#7A8B3A'];
 const OTHERS_COLOR = '#B9B2D6';
 const UNIT = { RON: 'lei', EUR: '€', USD: '$' };
 const amount = (minor, cur) => `${formatWhole(minor)} ${UNIT[cur] || cur}`;
@@ -29,9 +29,9 @@ export function giftsSection(model) {
   const others = totals.filter((t) => t.currency !== 'RON');
   const people = new Set(all.map((g) => g.giver)).size;
 
-  // the bar: the five biggest givers (in lei) and the rest together
+  // the bar: the ten biggest givers (in lei) and the rest together
   const ranked = lei ? byGiver(all, 'RON') : [];
-  const top = ranked.slice(0, 5), rest = ranked.slice(5);
+  const top = ranked.slice(0, COLORS.length), rest = ranked.slice(COLORS.length);
   const parts = [...top.map((p, i) => ({ label: p.giver, share: p.share, minor: p.minor, color: COLORS[i] })),
     ...(rest.length ? [{ label: 'Alții', share: rest.reduce((s, p) => s + p.share, 0), minor: rest.reduce((s, p) => s + p.minor, 0), color: OTHERS_COLOR }] : [])];
   const colorOf = new Map(top.map((p, i) => [p.giver, COLORS[i]]));
