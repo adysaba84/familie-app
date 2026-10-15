@@ -5,6 +5,7 @@ import { maturityBars } from '../charts.js';
 import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, fullDate, whenText, eurApprox } from '../ui.js';
 import { startEdit } from './depozit-nou.js';
 import { startClose } from './depozit-inchide.js';
+import { notifyControls, notifyBanner, depositInput } from '../notify.js';
 
 const MONTH_NAME = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
 const SHOWN = 4;
@@ -52,7 +53,8 @@ export async function depoziteView(app) {
         h('button', { class: 'secondary', onclick: () => { startEdit(d); app.go('/depozite/nou'); } }, 'Modifică (corectează o greșeală)'),
         confirmVoid === d.id
           ? h('button', { onclick: async (e) => { e.target.disabled = true; await app.void(space, 'deposits', d, 'anulat'); open = null; confirmVoid = null; app.rerender(); }, style: 'background:var(--neg)' }, 'Sigur? Șterge din toate datele')
-          : h('button', { class: 'secondary', onclick: () => { confirmVoid = d.id; app.rerender(); } }, 'Anulează (a fost o greșeală)')) : null;
+          : h('button', { class: 'secondary', onclick: () => { confirmVoid = d.id; app.rerender(); } }, 'Anulează (a fost o greșeală)'),
+        h('div', { style: 'grid-column:1 / -1' }, notifyControls(depositInput(d, r.account), today))) : null;
       return h('div', {
         class: 'deprow', role: 'button', tabindex: '0', 'aria-expanded': String(isOpen),
         onclick: (e) => { if (e.target.closest('button')) return; open = isOpen ? null : d.id; confirmVoid = null; app.rerender(); },
@@ -69,6 +71,7 @@ export async function depoziteView(app) {
       tab: 'active',
       head: backHead('#/active', 'Depozite', h('span', { class: 'sm muted', style: 'padding-right:6px' }, `${app.space === 'iza' ? 'Iza' : 'Părinți'} · ${rows.length} ${rows.length === 1 ? 'depozit' : 'depozite'}`)),
       body: [
+        notifyBanner(app),
         h('section', { class: 'panel' },
           h('div', { class: 'between', style: 'align-items:flex-end' },
             h('div', { style: 'display:flex;flex-direction:column;gap:2px' }, h('span', { class: 'up xs' }, 'Total'), h('span', { class: 'mono', style: 'font-size:24px;font-weight:600' }, lei(total), ' ', h('small', { class: 'muted', style: 'font-size:14px;font-weight:400' }, 'lei')), h('span', { class: 'xs muted mono' }, eurApprox(m, total, today))),

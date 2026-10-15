@@ -1,8 +1,13 @@
-# Apps Script: joburile din fundal
+# Apps Script: joburile din fundal (OPȚIONAL)
+
+> **Notificările NU depind de acest script.** Se fac direct din aplicație: butonul „Notificare” la fiecare depozit
+> (fișier `.ics` sau link Google Calendar) și memento-ul lunar din „Mai mult”. Nu e nevoie de Apps Script, de
+> permisiuni noi sau de instalare. Scriptul de aici rămâne în repo doar ca **opțiune**: curs BNR automat, backup
+> săptămânal și, dacă îl vrea cineva vreodată, sincronizarea automată cu Calendar. Dacă nu îl instalezi, aplicația
+> funcționează la fel.
 
 Rulează în contul lui Ady (proprietarul fișierelor), în Google. Nu conține date private: ID-urile fișierelor și
-emailurile sunt „Script Properties”. **Notificările vin doar prin Google Calendar** (aplicația Calendar de pe telefon);
-nu se mai trimite niciun email.
+emailurile sunt „Script Properties”. Nu trimite emailuri; partea de Calendar de mai jos este **opțională**.
 
 Proiectul are două fișiere de cod: `Code.gs` (joburile) și `Plan` (din `apps-script/Plan.js`: logica de planificare a
 evenimentelor, fără acces la Google, testată în `tests/calendar.test.js`), plus manifestul `appsscript.json`.
@@ -40,6 +45,9 @@ evenimentelor, fără acces la Google, testată în `tests/calendar.test.js`), p
 3. Rulează `testCalendar` (notificare pe telefon), apoi `installTriggers`. Ea șterge **toate** programările vechi
    (inclusiv `dailyNotifications` și `monthlyReminder`, care nu mai există) și le creează pe cele noi.
 4. `installTriggers` poate fi rulată oricând din nou: nu creează o a doua serie lunară (o recunoaște după titlu).
+
+Pașii 7 și 9 și seria lunară creată la pasul 10 sunt doar pentru sincronizarea opțională cu Calendar. Pentru curs și backup
+sunt de ajuns restul pașilor (`testSetup` cere totuși și permisiunea Calendar, fiindcă manifestul o include).
 
 ## Ce face fiecare
 

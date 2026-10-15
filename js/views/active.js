@@ -4,6 +4,7 @@ import { situation, comparisonDates, wealthStructure, wealthSeries, seriesStarts
 import { formatWhole } from '../money.js';
 import { wealthLine } from '../charts.js';
 import { setReturn, openCats } from '../return.js';
+import { notifyButton, googleLink, notifyBanner, depositInput } from '../notify.js';
 import { startSolduri } from './solduri.js';
 import { startEdit } from './depozit-nou.js';
 import { startClose } from './depozit-inchide.js';
@@ -94,7 +95,8 @@ export async function activeView(app) {
         const due = daysBetween(today, d.maturity_date) <= 0;
         const closing = (mode) => go(['/depozite/inchide'], k, () => startClose(d, space, mode, today), '/depozite/inchide');
         buttons = [btn(due ? 'Închide' : 'Închide înainte', () => closing(due ? 'matured' : 'broken')), btn('Prelungește', () => closing('extend')),
-          btn('Modifică', () => go(['/depozite/nou'], k, () => startEdit(d), '/depozite/nou'))];
+          btn('Modifică', () => go(['/depozite/nou'], k, () => startEdit(d), '/depozite/nou')),
+          notifyButton(depositInput(d, m.accounts.find((a) => a.id === d.account_id)), today), googleLink(depositInput(d, m.accounts.find((a) => a.id === d.account_id)), today)];
       } else if (it.itemId) {
         buttons = [btn('Valoare nouă', () => go(['/fizice'], k, () => startValue(it.itemId, k === 'aur'), '/fizice'))];
       } else if (k === 'bursa' && it.accountId) {
@@ -103,7 +105,7 @@ export async function activeView(app) {
       } else if (it.accountId) {
         buttons = [btn('Sold nou', () => soldNou(k, [it.accountId], it.label))];
       }
-      return buttons.length ? h('div', { style: 'grid-column:1 / -1;display:flex;gap:6px;margin-top:4px' }, ...buttons) : null;
+      return buttons.length ? h('div', { style: 'grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px' }, ...buttons) : null;
     };
 
     const itemRow = (line, it) => {
@@ -156,6 +158,7 @@ export async function activeView(app) {
       head: mainHead(app, 'Active', latestRateText(m)),
       body: [
         catNav('active'),
+        notifyBanner(app),
         h('a', { class: 'listrow', href: '#/venituri', style: 'grid-template-columns:minmax(0,1fr) 20px;background:var(--card, #fff);border-radius:12px;margin:0 16px' },
           h('span', { class: 'nm' }, h('b', {}, 'Venituri și cheltuieli'), h('span', { class: 'xs muted' }, 'pagina lunară de pe 15: soldurile, veniturile, ce s-a cheltuit')), h('span', {}, '›')),
         h('section', { class: 'panel' },

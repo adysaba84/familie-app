@@ -3,6 +3,7 @@ import { addMonths, closeInterestEstimate, destinationAccounts, planClose, planR
 import { parseAmount, parsePercent, formatMinor } from '../money.js';
 import { closeHead, frame, guarded, loading, fmtNative, fullDate } from '../ui.js';
 import { finish } from '../return.js';
+import { suggest } from '../notify.js';
 
 const TERMS = [1, 3, 6, 12, 24, 36];
 let st = null; // { id, space, mode: 'matured' | 'broken' | 'extend', date, interest, to, amount, rate, term, cap }
@@ -99,7 +100,10 @@ export async function depozitInchideView(app) {
         // the new row goes in first and the old one is voided after: a failure in between leaves a visible duplicate, never a loss
         const closed = await app.add(st.space, 'deposits', plan.closed, `${st.mode === 'broken' ? 'închis înainte de scadență' : st.mode === 'extend' ? 'prelungit' : 'închis la scadență'} ${bank ? bank.institution : ''} ${d.currency}`);
         await app.void(st.space, 'deposits', d, 'închis');
-        if (plan.fresh) await app.add(st.space, 'deposits', { ...plan.fresh, renewed_from_id: closed.id }, `depozit nou din prelungire ${bank ? bank.institution : ''} ${d.currency}`);
+        if (plan.fresh) {
+          const next = await app.add(st.space, 'deposits', { ...plan.fresh, renewed_from_id: closed.id }, `depozit nou din prelungire ${bank ? bank.institution : ''} ${d.currency}`);
+          suggest({ id: next.id, institution: bank ? bank.institution : '', owner: bank ? bank.owner : '', currency: d.currency, principalMinor: plan.fresh.principal_minor, rateBp: plan.fresh.rate_bp, maturity: plan.fresh.maturity_date });
+        }
         if (plan.balance) {
           for (const old of plan.voidBalances) await app.void(st.space, 'balances', old, 'corectat');
           await app.add(st.space, 'balances', plan.balance, `din depozit închis ${st.date}`);

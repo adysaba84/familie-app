@@ -4,6 +4,7 @@ import { parseAmount, parsePercent, formatMinor, formatWhole } from '../money.js
 import { SPACE_LABEL } from '../schema.js';
 import { closeHead, frame, guarded, loading, fullDate } from '../ui.js';
 import { finish } from '../return.js';
+import { suggest } from '../notify.js';
 
 const TERMS = [1, 3, 6, 12, 24, 36];
 const CURRENCIES = ['RON', 'EUR', 'USD'];
@@ -91,11 +92,12 @@ export async function depozitNouView(app) {
       e.target.disabled = true;
       try {
         if (editing) await app.void(pair.space, 'deposits', editing, 'modificat');
-        await app.add(pair.space, 'deposits', {
+        const saved = await app.add(pair.space, 'deposits', {
           account_id: account.id, currency: form.currency, principal_minor: principal, rate_bp: rateBp, term_months: form.term,
           start_date: d.start, maturity_date: d.maturity, capitalization: form.cap ? 1 : 0, auto_renew: form.renew ? 1 : 0,
           notify_days: form.email ? 3 : 0, status: 'active', note: '',
         }, `depozit ${account.institution} ${form.currency}`);
+        suggest({ id: saved.id, institution: account.institution, owner: account.owner, currency: form.currency, principalMinor: principal, rateBp, maturity: d.maturity });
         form = null; editing = null;
         finish(app, '/depozite');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva. Încearcă din nou.'; }

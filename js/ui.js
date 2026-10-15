@@ -17,6 +17,7 @@ const ICONS = {
   edit: 'M4 20h4L19 9l-4-4L4 16z',
   pie: 'M12 3v9h9a9 9 0 1 1-9-9zM15 3.5A9 9 0 0 1 20.5 9H15z',
   list: 'M4 6h16M4 12h16M4 18h10',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
 };
 
 export function icon(name, size = 22, sw = 1.8) {
