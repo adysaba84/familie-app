@@ -24,7 +24,7 @@ Push direct pe `main` = deploy pe GitHub Pages (1–3 minute): `https://adysaba8
 
 ## Configurare Google (o singură dată, pașii îi face Ady)
 1. Google Cloud: proiect „familie-app”, activate Sheets API, Drive API, Picker API.
-2. Ecran de consimțământ: External, **Testing**, 3 utilizatori de test, scope `drive.file` (+ email).
+2. Ecran de consimțământ: External, **In production** (altfel autorizarea expiră la 7 zile), scope `drive.file` (+ email), politică de confidențialitate `https://adysaba84.github.io/familie-app/privacy.html`. Ca să poți publica, Google cere pe Branding: nume, email de suport, home page, politică de confidențialitate, domeniu autorizat și email de contact.
 3. OAuth client Web cu originile din `SECURITATE.md` → `CLIENT_ID` în `js/config.js`.
 4. Cheie API restricționată (referreri + doar Picker) → `API_KEY` în `js/config.js`.
 5. Prima rulare: „Creează fișierele” (Ady) creează ambele fișiere cu toate foile; apoi Ady le partajează în Drive.
