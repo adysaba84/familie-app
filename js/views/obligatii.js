@@ -11,7 +11,7 @@ const cardLimitOf = (m, id) => {
   return rows.length ? Number(rows[rows.length - 1].value) : null;
 };
 
-// "Pensii și datorii": what is not plain cash — pensions (P2/P3), insurance, loans given, credit cards.
+// "Pensii și datorii": what is not plain cash — pensions (P2/P3, Gent), insurance, loans given, credit cards.
 // Balances are updated in "Actualizează toate soldurile"; a card's limit is changed here.
 export async function obligatiiView(app) {
   loading();
@@ -65,7 +65,7 @@ export async function obligatiiView(app) {
       tab: 'more',
       head: backHead('#/mai-mult', 'Pensii și datornici'),
       body: [
-        group('Pensii (P2, P3)', 'pension'),
+        group('Pensii · piloni și Gent', 'pension'),
         group('Asigurări · valoare de răscumpărare', 'insurance'),
         group('Datornici · împrumuturi date', 'loan'),
         cardsPanel,

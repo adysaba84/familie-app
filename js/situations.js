@@ -1,26 +1,37 @@
 import { toRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
 
-// "Situații": the family's position in the three layers the Excel uses. PURE (no DOM, no network).
-//   DISPONIBIL   = cash only: current accounts, wallets, vouchers, savings, deposits, cash in the safe,
-//                  insurance (surrender value) and credit cards counted as `balance - limit` (<= 0 = what was spent)
-//   BURSĂ ȘI AUR = brokers (all instruments) and gold: not cash, not locked; they count only in wealth
-//   INDISPONIBIL = money that is not at hand: property (house, car, garage), pillars 2/3, loans given
-//   WEALTH       = disponibil + bursă și aur + indisponibil
+// "Situații": the family position in layers. PURE (no DOM, no network).
+//   DISPONIBIL   = cash: current accounts, wallets, vouchers, savings, deposits, cash in the safe, credit cards counted
+//                  as `balance - limit` (<= 0 = what was spent), and (Iza) insurance surrender value
+//   PENSII       = "disponibili cu vanzare" (brokers - all instruments, physical gold, Gent: can be sold, not cash) and
+//                  "indisponibili pana la pensie" (pillars 2 and 3)
+//   INDISPONIBIL = property (house, car, garage) and loans given: counted, but cannot be touched right away
+//   WEALTH       = disponibil + pensii + indisponibil
 // Every number is in RON bani at `asOf` (euro is derived by the caller); disponibil also carries the native amount
-// per currency (lei / euro / dolari), like the Excel's "cash lei / cash eur / cash usd".
+// per currency (lei / euro / dolari), like the Excel "cash lei / cash eur / cash usd".
 const live = (r) => !r.void;
 
+// pension accounts that can be sold (surrender value); every other pension account is a locked pillar
+export const SELLABLE_PENSION_INSTITUTIONS = ['Gent'];
+export const isSellablePension = (a) => SELLABLE_PENSION_INSTITUTIONS.includes(a.institution);
+
+// [key, label, section]; `section` groups the lines of a layer that has sub-sections (Pensii)
 export const LAYERS = {
   disponibil: [
     ['conturi', 'Conturi, portofele, tichete'], ['economii', 'Economii'], ['depozite', 'Depozite'],
     ['seif', 'Numerar în seif'], ['asigurari', 'Asigurări (valoare de răscumpărare)'], ['carduri', 'Carduri de credit (cheltuit)'],
   ],
-  bursa: [['bursa', 'Bursă'], ['aur', 'Aur']],
-  indisponibil: [['imobile', 'Casă, mașină, garaj'], ['pensii', 'Pensii (P2, P3)'], ['imprumuturi', 'Împrumuturi date']],
+  pensii: [
+    ['bursa', 'Bursă', 'vanzare'], ['aur', 'Aur fizic', 'vanzare'], ['gent', 'Gent (valoare de răscumpărare)', 'vanzare'],
+    ['piloni', 'Pilon 2 și 3', 'pensie'],
+  ],
+  indisponibil: [['imobile', 'Casă, mașină, garaj'], ['imprumuturi', 'Împrumuturi date (nu pot fi atinse imediat)']],
 };
+export const PENSII_SECTIONS = { vanzare: 'Disponibili cu vânzare', pensie: 'Indisponibili până la pensie' };
+export const LAYER_TITLES = [['disponibil', 'DISPONIBIL'], ['pensii', 'PENSII'], ['indisponibil', 'INDISPONIBIL']];
 
 function emptyLayer(defs) {
-  return { lines: defs.map(([key, label]) => ({ key, label, ron: 0 })), total: 0 };
+  return { lines: defs.map(([key, label, section]) => ({ key, label, section, ron: 0 })), total: 0 };
 }
 const bump = (layer, key, ron) => { layer.lines.find((l) => l.key === key).ron += ron; layer.total += ron; };
 
@@ -36,7 +47,7 @@ function cardLimit(model, accountId) {
 // than the first detailed record of that group, so they can never be added on top of real records.
 const SNAP_LAYER = {
   conturi: ['disponibil', 'conturi'], depozite: ['disponibil', 'depozite'], seif: ['disponibil', 'seif'],
-  bursa: ['bursa', 'bursa'], aur: ['bursa', 'aur'],
+  bursa: ['pensii', 'bursa'], aur: ['pensii', 'aur'],
 };
 
 export function detailStart(model, group) {
@@ -72,7 +83,7 @@ export function snapshotRows(model, asOf, { all = false } = {}) {
 export function situation(model, asOf) {
   const rates = model.rates;
   const disponibil = emptyLayer(LAYERS.disponibil);
-  const bursa = emptyLayer(LAYERS.bursa);
+  const pensii = emptyLayer(LAYERS.pensii);
   const indisponibil = emptyLayer(LAYERS.indisponibil);
   const native = { RON: 0, EUR: 0, USD: 0 };
   const addNative = (ccy, minor) => { native[ccy] = (native[ccy] || 0) + minor; };
@@ -89,7 +100,7 @@ export function situation(model, asOf) {
     else if (a.kind === 'card') {
       const limit = cardLimit(model, a.id);
       if (limit != null) { const used = b.balance_minor - limit; bump(disponibil, 'carduri', toRon(used, ccy, rates, asOf)); addNative(ccy, used); }
-    } else if (a.kind === 'pension') bump(indisponibil, 'pensii', ron);
+    } else if (a.kind === 'pension') bump(pensii, isSellablePension(a) ? 'gent' : 'piloni', ron);
     else if (a.kind === 'loan') bump(indisponibil, 'imprumuturi', ron);
     else if (['current', 'wallet', 'voucher'].includes(a.kind)) { bump(disponibil, 'conturi', ron); addNative(ccy, b.balance_minor); }
   }
@@ -108,21 +119,21 @@ export function situation(model, asOf) {
   for (const it of model.physical_items) {
     if (!live(it) || (it.purchase_date > asOf && !PROPERTY_KINDS.includes(it.kind))) continue; // property counts at every date
     const v = pv.get(it.id);
-    if (it.kind === 'gold') bump(bursa, 'aur', v ? v.value_minor : it.purchase_value_minor || 0);
+    if (it.kind === 'gold') bump(pensii, 'aur', v ? v.value_minor : it.purchase_value_minor || 0);
     else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; bump(disponibil, 'seif', toRon(n, it.currency, rates, asOf)); addNative(it.currency, n); }
     else if (PROPERTY_KINDS.includes(it.kind)) bump(indisponibil, 'imobile', toRon(propertyValue(model, it, asOf), it.currency, rates, asOf));
   }
 
-  bump(bursa, 'bursa', brokerSummary(model, asOf).valueRon);
+  bump(pensii, 'bursa', brokerSummary(model, asOf).valueRon);
 
   for (const s of snapshotRows(model, asOf)) {
     const [which, key] = SNAP_LAYER[s.group];
-    const layer = which === 'disponibil' ? disponibil : bursa;
+    const layer = which === 'disponibil' ? disponibil : pensii;
     bump(layer, key, toRon(s.amount_minor, s.currency, rates, asOf));
     if (which === 'disponibil') addNative(s.currency, s.amount_minor);
   }
 
-  return { asOf, disponibil: { ...disponibil, native }, bursa, indisponibil, wealth: disponibil.total + bursa.total + indisponibil.total };
+  return { asOf, disponibil: { ...disponibil, native }, pensii, indisponibil, wealth: disponibil.total + pensii.total + indisponibil.total };
 }
 
 // Several spaces (e.g. parents + Iza) added together, line by line.
@@ -136,8 +147,8 @@ export function combine(list) {
   const native = {};
   for (const x of list) for (const [c, v] of Object.entries(x.disponibil.native)) native[c] = (native[c] || 0) + v;
   const disponibil = { ...merge((x) => x.disponibil), native };
-  const bursa = merge((x) => x.bursa), indisponibil = merge((x) => x.indisponibil);
-  return { asOf: list[0].asOf, disponibil, bursa, indisponibil, wealth: disponibil.total + bursa.total + indisponibil.total };
+  const pensii = merge((x) => x.pensii), indisponibil = merge((x) => x.indisponibil);
+  return { asOf: list[0].asOf, disponibil, pensii, indisponibil, wealth: disponibil.total + pensii.total + indisponibil.total };
 }
 
 // The comparison dates: the end of last month and the end of last year (start of this year).

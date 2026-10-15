@@ -6,13 +6,13 @@ const rates = [{ date: '2026-01-01', EUR: 50000, USD: 40000 }];
 const acc = (id, kind, ccy = 'RON') => ({ id, kind, institution: 'X', owner: 'Y', name: id, currency_default: ccy, status: 'active' });
 const model = {
   accounts: [acc('cur', 'current'), acc('wal', 'wallet', 'EUR'), acc('sav', 'savings'), acc('ins', 'insurance'), acc('card', 'card'),
-    acc('pen', 'pension'), acc('loan', 'loan', 'EUR'), acc('tv', 'broker')],
+    acc('pen', 'pension'), { ...acc('gent', 'pension'), institution: 'Gent' }, acc('loan', 'loan', 'EUR'), acc('tv', 'broker')],
   settings: [{ key: 'card_limit:card', value: '100000' }],
   rates,
   balances: [
     { account_id: 'cur', date: '2026-09-30', balance_minor: 100000 }, { account_id: 'wal', date: '2026-09-30', balance_minor: 20000 },
     { account_id: 'sav', date: '2026-09-30', balance_minor: 50000 }, { account_id: 'ins', date: '2026-09-30', balance_minor: 200000 },
-    { account_id: 'card', date: '2026-09-30', balance_minor: 80000 }, { account_id: 'pen', date: '2026-09-30', balance_minor: 1000000 },
+    { account_id: 'card', date: '2026-09-30', balance_minor: 80000 }, { account_id: 'pen', date: '2026-09-30', balance_minor: 1000000 }, { account_id: 'gent', date: '2026-09-30', balance_minor: 30000 },
     { account_id: 'loan', date: '2026-09-30', balance_minor: 10000 },
   ],
   deposits: [
@@ -48,31 +48,34 @@ test('situation: disponibil keeps the native amount per currency', () => {
   const n = situation(model, '2026-10-14').disponibil.native;
   eq(n.RON, 430000); eq(n.EUR, 30000); eq(n.USD, 10000);
 });
-test('situation: BURSĂ ȘI AUR is its own layer (brokers + gold), never in disponibil', () => {
+test('situation: PENSII = sellable (broker, gold, Gent) + locked pillars, never in disponibil', () => {
   const s = situation(model, '2026-10-14');
-  eq(line(s.bursa, 'bursa'), 300000); eq(line(s.bursa, 'aur'), 500000); eq(s.bursa.total, 800000);
+  eq(line(s.pensii, 'bursa'), 300000); eq(line(s.pensii, 'aur'), 500000); eq(line(s.pensii, 'gent'), 30000); eq(line(s.pensii, 'piloni'), 1000000);
+  eq(s.pensii.total, 1830000);
+  eq(s.pensii.lines.filter((l) => l.section === 'vanzare').reduce((t, l) => t + l.ron, 0), 830000);
+  eq(s.pensii.lines.filter((l) => l.section === 'pensie').reduce((t, l) => t + l.ron, 0), 1000000);
+  eq(line(s.disponibil, 'asigurari'), 200000); // Iza keeps insurance in disponibil
 });
-test('situation: INDISPONIBIL = property + pensions + loans given', () => {
+test('situation: INDISPONIBIL = property + loans given (counted, not touchable)', () => {
   const s = situation(model, '2026-10-14');
   eq(line(s.indisponibil, 'imobile'), 12500000); // 20.000 + 5.000 euro
-  eq(line(s.indisponibil, 'pensii'), 1000000);
   eq(line(s.indisponibil, 'imprumuturi'), 50000); // 100 euro
-  eq(s.indisponibil.total, 13550000);
+  eq(s.indisponibil.total, 12550000);
 });
-test('situation: WEALTH = disponibil + bursă și aur + indisponibil', () => {
+test('situation: WEALTH = disponibil + pensii + indisponibil', () => {
   const s = situation(model, '2026-10-14');
-  eq(s.wealth, 620000 + 800000 + 13550000);
+  eq(s.wealth, 620000 + 1830000 + 12550000);
 });
 test('situation: a card without a limit is ignored, a past date sees only what existed then', () => {
   const noLimit = situation({ ...model, settings: [] }, '2026-10-14');
   eq(line(noLimit.disponibil, 'carduri'), 0);
   const jan = situation(model, '2026-01-15');
   eq(line(jan.disponibil, 'depozite'), 140000); // deposits started on 1 Jan
-  eq(jan.disponibil.total, 140000); eq(jan.bursa.total, 400000); eq(jan.indisponibil.total, 12500000); eq(jan.wealth, 540000 + 12500000); // deposits and the gold's purchase price existed; property counts at every date
+  eq(jan.disponibil.total, 140000); eq(jan.pensii.total, 400000); eq(jan.indisponibil.total, 12500000); eq(jan.wealth, 540000 + 12500000); // deposits and the gold's purchase price existed; property counts at every date
 });
 test('situation: property never leaks into the cash or gold layers', () => {
   const s = situation({ ...model, physical_items: [model.physical_items[2]] }, '2026-10-14');
-  eq(line(s.disponibil, 'seif'), 0); eq(line(s.bursa, 'aur'), 0); eq(line(s.indisponibil, 'imobile'), 10000000);
+  eq(line(s.disponibil, 'seif'), 0); eq(line(s.pensii, 'aur'), 0); eq(line(s.indisponibil, 'imobile'), 10000000);
 });
 test('combine: two spaces add up line by line, native amounts too', () => {
   const a = situation(model, '2026-10-14');
@@ -89,7 +92,7 @@ test('historyStart: the earliest balance / broker / physical date', () => {
   eq(historyStart(model), '2026-09-30');
   eq(historyStart({ balances: [], broker_flows: [], broker_values: [], physical_values: [] }), null);
 });
-test('LAYERS lists every line the screen shows', () => ok(LAYERS.disponibil.length === 6 && LAYERS.bursa.length === 2 && LAYERS.indisponibil.length === 3));
+test('LAYERS lists every line the screen shows', () => ok(LAYERS.disponibil.length === 6 && LAYERS.pensii.length === 4 && LAYERS.indisponibil.length === 2));
 
 test('snapshots: Excel totals count only before the group has detailed records, never on top of them', () => {
   const snap = (group, label, currency, amount_minor, date = '2025-12-31') => ({ group, label, currency, amount_minor, date });
@@ -99,8 +102,8 @@ test('snapshots: Excel totals count only before the group has detailed records, 
   const early = situation(m, '2025-12-31');
   eq(line(early.disponibil, 'depozite'), 777700 + 50000); // 100 euro = 500 lei
   eq(early.disponibil.native.EUR, 10000 + 2000); // snapshot deposits euro + safe euro
-  eq(line(early.bursa, 'bursa'), 123400);
-  eq(line(situation(m, '2026-03-15').bursa, 'bursa'), 150000); // the latest snapshot on or before the date
+  eq(line(early.pensii, 'bursa'), 123400);
+  eq(line(situation(m, '2026-03-15').pensii, 'bursa'), 150000); // the latest snapshot on or before the date
   eq(line(situation(m, '2026-10-14').disponibil, 'depozite'), 100000 + 40000); // real deposits only
   eq(snapshotRows(m, '2026-10-14').some((r) => r.group === 'depozite'), false);
   ok(snapshotRows(m, '2026-10-14', { all: true }).some((r) => r.group === 'depozite' && !r.used), 'all=true keeps unused ones, flagged');
@@ -111,5 +114,19 @@ test('property counts at every date (house/car/garage existed before they were e
     physical_values: model.physical_values.map((v) => ({ ...v, date: '2026-10-14' })) };
   const early = line(situation(m, '2025-12-31').indisponibil, 'imobile'), now = line(situation(m, '2026-10-14').indisponibil, 'imobile');
   eq(early, now); ok(now > 0, 'property is counted');
-  eq(line(situation(m, '2025-12-31').bursa, 'aur'), 0); // gold is not property: still only from its date
+  eq(line(situation(m, '2025-12-31').pensii, 'aur'), 0); // gold is not property: still only from its date
+});
+
+test('situation: Iza-like model (insurance, no pillars) still works, and combine adds the Pensii lines', () => {
+  const a = situation(model, '2026-10-14');
+  const iza = situation({ ...model, accounts: model.accounts.filter((x) => !['pen', 'gent'].includes(x.id)) }, '2026-10-14');
+  eq(line(iza.pensii, 'piloni'), 0); eq(line(iza.disponibil, 'asigurari'), 200000);
+  const c = combine([a, iza]);
+  eq(line(c.pensii, 'piloni'), 1000000); eq(c.pensii.total, a.pensii.total + iza.pensii.total);
+  eq(c.wealth, a.wealth + iza.wealth);
+});
+test('a pension account is a locked pillar unless its institution is a sellable one', () => {
+  const m = { ...model, accounts: model.accounts.map((x) => (x.id === 'gent' ? { ...x, institution: 'Pilon 3' } : x)) };
+  const s = situation(m, '2026-10-14');
+  eq(line(s.pensii, 'gent'), 0); eq(line(s.pensii, 'piloni'), 1030000);
 });

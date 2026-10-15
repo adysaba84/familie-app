@@ -1,6 +1,6 @@
 import { h } from '../dom.js';
 import { accountBalance, accountValueRon, depositTotalsByCurrency, safeCash, goldItems, propertyItems, toRon } from '../calc.js';
-import { situation, snapshotRows, LAYERS } from '../situations.js';
+import { situation, snapshotRows, LAYERS, LAYER_TITLES } from '../situations.js';
 import { formatMinor } from '../money.js';
 import { frame, backHead, guarded, loading, lei, eurApprox, shortDate } from '../ui.js';
 
@@ -74,7 +74,7 @@ export async function verificareView(app) {
     // totals: the layers of Situații, in lei
     const sits = dates.map((d) => situation(m, d));
     const totalRows = [];
-    for (const [layer, title] of [['disponibil', 'DISPONIBIL'], ['bursa', 'BURSĂ ȘI AUR'], ['indisponibil', 'INDISPONIBIL']]) {
+    for (const [layer, title] of LAYER_TITLES) {
       totalRows.push(row(title, sits.map((s) => lei(s[layer].total) + ' lei'), { sub: 'total' }));
       LAYERS[layer].forEach(([key, label], i) => totalRows.push(row('· ' + label, sits.map((s) => { const v = s[layer].lines[i].ron; return v ? lei(v) : null; }), { dim: true })));
     }

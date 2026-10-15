@@ -1,9 +1,9 @@
 import { h } from '../dom.js';
-import { situation, combine, comparisonDates, historyStart } from '../situations.js';
+import { situation, combine, comparisonDates, historyStart, PENSII_SECTIONS } from '../situations.js';
 import { formatWhole } from '../money.js';
 import { frame, backHead, guarded, loading, lei, signed, eurApprox, eurSigned, fullDate, shortDate } from '../ui.js';
 
-// Situații: DISPONIBIL (cash) / BURSĂ ȘI AUR / INDISPONIBIL / WEALTH, now versus the end of last month or the
+// Situații: DISPONIBIL (cash) / PENSII / INDISPONIBIL / WEALTH, now versus the end of last month or the
 // end of last year, for Părinți, Iza or the whole family. Euro next to every lei amount.
 let who = 'familie'; // 'parents' | 'iza' | 'familie'
 let cmp = 'month'; // 'month' | 'year'
@@ -46,17 +46,29 @@ export async function situatiiView(app) {
     const seg = (items, current, onPick, cols) => h('div', { class: 'seg', style: `grid-template-columns:repeat(${cols},minmax(0,1fr))` },
       ...items.map(([k, label]) => h('button', { class: current === k ? 'on' : '', 'aria-pressed': String(current === k), onclick: () => onPick(k) }, label)));
 
+    // lines with something at either date, grouped in the layer sub-sections (Pensii) when it has them
+    const bySection = (c, p) => {
+      const rows = c.lines.map((l, i) => ({ l, was: p.lines[i].ron })).filter(({ l, was }) => l.ron !== 0 || was !== 0);
+      if (!c.lines.some((l) => l.section)) return [{ title: null, rows }];
+      return Object.entries(PENSII_SECTIONS).map(([k, title]) => {
+        const rs = rows.filter(({ l }) => l.section === k);
+        return { title, rows: rs, total: rs.reduce((t, { l }) => t + l.ron, 0) };
+      }).filter((x) => x.rows.length);
+    };
+
     const layerCard = (title, sub, c, p, extra) => h('section', { class: 'panel', style: 'gap:8px' },
       h('div', { class: 'between' }, h('div', { style: 'display:flex;flex-direction:column' }, h('b', { style: 'font-size:1rem' }, title), h('span', { class: 'xs muted' }, sub)),
         h('div', { style: 'display:flex;flex-direction:column;align-items:flex-end' }, h('span', { class: 'mono', style: 'font-size:18px;font-weight:600;white-space:nowrap' }, lei(c.total) + ' lei'), h('span', { class: 'xs muted mono' }, eurApprox(rm, c.total, today)))),
       deltaLine(c.total, p.total),
-      h('div', { class: 'sep stack', style: 'gap:4px;margin-top:4px;padding-top:8px' },
-        ...c.lines.map((l, i) => ({ l, was: p.lines[i].ron })).filter(({ l, was }) => l.ron !== 0 || was !== 0).map(({ l, was }) => {
+      h('div', { class: 'sep stack', style: 'gap:4px;margin-top:4px;padding-top:8px' }, ...bySection(c, p).flatMap((sec) => [
+        sec.title ? h('div', { style: 'display:flex;justify-content:space-between;margin-top:6px;font-size:12px;font-weight:600' },
+          h('span', { class: 'up' }, sec.title), h('span', { class: 'mono' }, lei(sec.total))) : null,
+        ...sec.rows.map(({ l, was }) => {
           const d = delta(l.ron, was);
           return h('div', { style: 'display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;font-size:13px' },
             h('span', {}, l.label), h('span', { class: 'mono' }, lei(l.ron)),
             h('span', { class: 'xs mono ' + d.cls, style: 'min-width:64px;text-align:right' }, d.diff === 0 ? '·' : signed(d.diff)));
-        }),
+        })]),
         extra));
 
     const n = cur.disponibil.native;
@@ -77,10 +89,10 @@ export async function situatiiView(app) {
             h('span', { class: wd.cls, style: 'font-weight:600' }, `${wd.diff === 0 ? '0' : signed(wd.diff)} lei${pctText(wd.pct)}`)),
           h('span', { class: 'xs muted' }, `${CMP[cmp]}: ${fullDate(cmpDate)} · ${eurSigned(rm, wd.diff, today)}`),
           incomplete ? h('span', { class: 'xs neg', style: 'margin-top:4px' }, `Istoricul începe la ${fullDate(first)}: diferențele includ intrarea datelor în aplicație, nu doar creșterea.`) : null),
-        layerCard('Disponibil', 'cash: conturi, depozite, seif, asigurare, carduri', cur.disponibil, past.disponibil, nativeLine),
-        layerCard('Bursă și aur', 'nu e cash și nici indisponibil: intră doar în wealth', cur.bursa, past.bursa, null),
-        layerCard('Indisponibil', 'casă, mașină, garaj, pensii, împrumuturi date', cur.indisponibil, past.indisponibil, null),
-        h('p', { class: 'xs muted', style: 'margin:12px 16px' }, 'Wealth = disponibil + bursă și aur + indisponibil. Cursul: BNR din ziua respectivă (sau cel mai recent). Pensiile, împrumuturile date și cardurile de credit apar după ce le adăugăm.'),
+        layerCard('Disponibil', 'cash: conturi, depozite, seif, carduri', cur.disponibil, past.disponibil, nativeLine),
+        layerCard('Pensii', 'bursă, aur, Gent (se pot vinde) și pilonii (blocați până la pensie)', cur.pensii, past.pensii, null),
+        layerCard('Indisponibil', 'casă, mașină, garaj și împrumuturi date: nu pot fi atinse imediat', cur.indisponibil, past.indisponibil, null),
+        h('p', { class: 'xs muted', style: 'margin:12px 16px' }, 'Wealth = disponibil + pensii + indisponibil. Cursul: BNR din ziua respectivă (sau cel mai recent). Pensiile, împrumuturile date și cardurile de credit apar după ce le adăugăm.'),
       ],
     });
   });
