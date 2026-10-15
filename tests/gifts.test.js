@@ -66,11 +66,11 @@ test('giftsFromCsv: converts rows, turns a period into its last year and reports
 
 test('giverShares: euro counted in lei at the given rate, amounts kept per currency, tiny one-time givers left out', () => {
   const toRon = (minor, c) => (c === 'EUR' ? minor * 5 : minor); // invented rate: 1 EUR = 5 lei
-  const list = [g('2025-01', 'A', 10000), g('2025-02', 'A', 1000, 'EUR'), g('2025-03', 'B', 5000), g('2025-04', 'C', 700), g('2025-05', 'D', 600), g('2025-06', 'D', 600)];
+  const list = [g('2025-01', 'A', 10000), g('2025-02', 'A', 1000, 'EUR'), g('2025-03', 'B', 2500), g('2025-04', 'C', 700), g('2025-05', 'D', 600), g('2025-06', 'D', 600)];
   const r = giverShares(list, toRon);
   eq(r.map((x) => x.giver), ['A', 'B', 'D']); // C gave once, 7 lei: out; D gave twice, so it stays
   eq(r[0].parts, [{ currency: 'RON', minor: 10000 }, { currency: 'EUR', minor: 1000 }]);
   eq(r[0].ron, 15000);
-  eq(Math.round(r[0].share * 100), 71); // 15000 of 21200 (C is out of the base)
+  eq(Math.round(r[0].share * 100), 80); // 15000 of 18700 (C is out of the base)
   eq(giverShares([], toRon), []);
 });
