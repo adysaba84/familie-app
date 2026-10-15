@@ -156,18 +156,40 @@ function dailyCalendarSync() {
   } finally { lock.releaseLock(); }
 }
 
-// The monthly "update the balances" reminder: ONE recurring series (day 15, 09:00, popup at the time), created once.
+// The monthly "update the balances" reminder: ONE recurring series (day 15, 09:00, popup at the time), created once;
+// Ady (organizer), Carmen and Iza get it.
 // An existing series with this title is recognised, so running installTriggers again never creates a second one.
 function ensureBalancesSeries_() {
   const cal = CalendarApp.getDefaultCalendar();
   const from = new Date(), to = new Date(Date.now() + 70 * 86400000);
-  if (cal.getEvents(from, to, { search: BALANCES_TITLE }).some((ev) => ev.isRecurringEvent() && ev.getTitle() === BALANCES_TITLE)) return false;
+  const found = cal.getEvents(from, to, { search: BALANCES_TITLE }).find((ev) => ev.isRecurringEvent() && ev.getTitle() === BALANCES_TITLE);
+  if (found) { syncBalanceGuests_(found.getEventSeries(), found.getGuestList().map((g) => g.getEmail())); return false; } // already there: only add missing guests
   const start = parseAt_(planNextBalancesDate_(todayYmd_(), Number(Utilities.formatDate(new Date(), TZ, 'H'))), PLAN_HOUR_, 0);
   const series = cal.createEventSeries(BALANCES_TITLE, start, new Date(start.getTime() + PLAN_MINUTES_ * 60000),
     CalendarApp.newRecurrence().addMonthlyRule().onlyOnMonthDay(15),
     { description: 'Deschide aplicația → Active (conturile cu sold vechi apar marcate) → +' });
   series.removeAllReminders(); series.addPopupReminder(0);
+  syncBalanceGuests_(series, []);
   return true;
+}
+
+// Carmen and Iza (from OWNER_EMAILS) are invited to the balances series, and ONLY to it (deposit events are Ady's alone).
+// Idempotent: only addresses that are not on the guest list yet are added, so a rerun sends no new invitations. One
+// failing address (e.g. Iza's supervised account) is logged and never stops the installation.
+function syncBalanceGuests_(series, existingGuests) {
+  const todo = planGuestsToInvite_(cfg_().ownerEmails, existingGuests, Session.getEffectiveUser().getEmail());
+  todo.forEach((email) => {
+    try { series.addGuest(email); } catch (e) { console.warn('invitația către ' + email + ' a eșuat: ' + e); }
+  });
+  return todo.length;
+}
+
+// By hand (or from installTriggers): add the missing guests to the existing series without creating anything.
+function syncBalanceGuests() {
+  const cal = CalendarApp.getDefaultCalendar();
+  const ev = cal.getEvents(new Date(), new Date(Date.now() + 70 * 86400000), { search: BALANCES_TITLE }).find((x) => x.isRecurringEvent() && x.getTitle() === BALANCES_TITLE);
+  if (!ev) return 'nu există seria; rulează installTriggers';
+  return 'invitați noi: ' + syncBalanceGuests_(ev.getEventSeries(), ev.getGuestList().map((g) => g.getEmail()));
 }
 
 // By hand: an event in ~2 minutes with a popup at the time, to see the notification arrive on the phone.

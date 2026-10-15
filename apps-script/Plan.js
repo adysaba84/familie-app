@@ -105,3 +105,20 @@ function planNextBalancesDate_(today, hourNow) {
   var d = new Date(Date.UTC(p[0], p[1], 15)); // month index p[1] = next month
   return d.toISOString().slice(0, 10);
 }
+
+/**
+ * Who still has to be invited to the monthly balances series: the people in OWNER_EMAILS (Ady, Carmen, Iza) minus the
+ * organizer (the calendar owner, who has the event anyway) and minus whoever is already on the guest list. Comparing
+ * lower-cased addresses keeps the invitation from being sent twice. Deposit events never use this: they are Ady's only.
+ */
+function planGuestsToInvite_(ownerEmails, existingGuests, organizer) {
+  var have = {};
+  (existingGuests || []).forEach(function (e) { have[String(e).toLowerCase()] = true; });
+  if (organizer) have[String(organizer).toLowerCase()] = true;
+  var out = [];
+  Object.keys(ownerEmails || {}).forEach(function (name) {
+    var e = String(ownerEmails[name] || '').trim().toLowerCase();
+    if (e && !have[e]) { have[e] = true; out.push(e); }
+  });
+  return out;
+}

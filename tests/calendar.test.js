@@ -72,3 +72,17 @@ test('planNextBalancesDate_: the next day 15 at 09:00 that is still ahead', () =
   eq(nextBal('2026-10-05', 8), '2026-10-15'); eq(nextBal('2026-10-15', 8), '2026-10-15'); eq(nextBal('2026-10-15', 9), '2026-11-15');
   eq(nextBal('2026-10-20', 12), '2026-11-15'); eq(nextBal('2026-12-20', 12), '2027-01-15');
 });
+
+test('planGuestsToInvite_: Carmen and Iza are invited once; the organizer and anyone already invited are skipped', () => {
+  const owners = { Ady: 'Ady@example.test', Carmen: 'carmen@example.test', Iza: 'Iza@Example.test' };
+  const invite = window.planGuestsToInvite_;
+  eq(invite(owners, [], 'ady@example.test'), ['carmen@example.test', 'iza@example.test']);
+  eq(invite(owners, ['CARMEN@example.test'], 'ady@example.test'), ['iza@example.test']);
+  eq(invite(owners, ['carmen@example.test', 'iza@example.test'], 'ady@example.test'), []); // a rerun sends nothing
+  eq(invite({}, [], 'ady@example.test'), []);
+  eq(invite({ Iza: '', Carmen: ' c@example.test ' }, [], ''), ['c@example.test']);
+});
+test('deposit events never carry guests', () => {
+  const [e] = desired(TODAY, [dep({})]);
+  ok(!('guests' in e) && !('emails' in e));
+});
