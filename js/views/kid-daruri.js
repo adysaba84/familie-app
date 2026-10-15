@@ -32,8 +32,8 @@ export function giftsSection(model) {
   // the bar: the five biggest givers (in lei) and the rest together
   const ranked = lei ? byGiver(all, 'RON') : [];
   const top = ranked.slice(0, 5), rest = ranked.slice(5);
-  const parts = [...top.map((p, i) => ({ label: p.giver, share: p.share, color: COLORS[i] })),
-    ...(rest.length ? [{ label: 'Alții', share: rest.reduce((s, p) => s + p.share, 0), color: OTHERS_COLOR }] : [])];
+  const parts = [...top.map((p, i) => ({ label: p.giver, share: p.share, minor: p.minor, color: COLORS[i] })),
+    ...(rest.length ? [{ label: 'Alții', share: rest.reduce((s, p) => s + p.share, 0), minor: rest.reduce((s, p) => s + p.minor, 0), color: OTHERS_COLOR }] : [])];
   const colorOf = new Map(top.map((p, i) => [p.giver, COLORS[i]]));
 
   const totalEl = h('span', { class: 'v' }, lei ? amount(0, 'RON') : '');
@@ -70,6 +70,6 @@ export function giftsSection(model) {
     parts.length ? h('section', { class: 'colors' },
       h('div', { class: 'stackbar', role: 'img', 'aria-label': 'Cât ai primit de la fiecare' },
         ...parts.map((p) => { const seg = h('div', { style: `background:${p.color}` }); growOnView(seg, Math.max(3, p.share * 100) + '%'); return seg; })),
-      h('div', { class: 'legend' }, ...parts.map((p) => h('span', {}, h('i', { style: `background:${p.color}` }), `${p.label} · ${Math.round(p.share * 100)}%`)))) : null,
+      h('div', { class: 'legend' }, ...parts.map((p) => h('span', {}, h('i', { style: `background:${p.color}` }), `${p.label} · ${Math.round(p.share * 100)}%`, h('b', { class: 'mono' }, amount(p.minor, 'RON')))))) : null,
     list, toggle);
 }
