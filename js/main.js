@@ -11,6 +11,7 @@ import { SCREENS } from './screens.js';
 import { loginView } from './views/login.js';
 import { setupView } from './views/setup.js';
 import { kidView } from './views/kid.js';
+import { kidPrimitView } from './views/kid-primit.js';
 
 let files = null; // {parents, iza, role} once resolved
 let app = null;
@@ -88,7 +89,7 @@ const routes = {
 for (const [path, view] of Object.entries(SCREENS)) {
   routes[path] = guard(() => {
     if (!app || !files.role) return router.go('/setup');
-    if (files.role === 'kid') return kidView(app);
+    if (files.role === 'kid') return path === '/iza/primit' ? kidPrimitView(app) : kidView(app);
     return view(app);
   });
 }

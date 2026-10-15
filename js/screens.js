@@ -17,6 +17,7 @@ import { maiMultView } from './views/mai-mult.js';
 import { venituriView } from './views/venituri.js';
 import { investitView } from './views/investit.js';
 import { primiteView } from './views/primite.js';
+import { kidPrimitView } from './views/kid-primit.js';
 
 // Parent-facing screens: path -> view(app). Shared by main.js and the offline preview page.
 export const SCREENS = {
@@ -39,4 +40,5 @@ export const SCREENS = {
   '/venituri': venituriView,
   '/investit': investitView,
   '/primite': primiteView,
+  '/iza/primit': (app) => kidPrimitView(app, { asParent: true }), // Iza's own "Am primit un dar" form (a parent can try it too)
 };

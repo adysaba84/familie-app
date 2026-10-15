@@ -52,11 +52,11 @@ function auditRow(action, tab, rowId, summary) {
 }
 
 // Adds one record; returns it (with its generated id) so the caller can update its model.
-export async function addRecord(fileId, tab, fields, summary = '') {
+export async function addRecord(fileId, tab, fields, summary = '', { audit = true } = {}) {
   const rec = { id: crypto.randomUUID(), ...fields, created_by: currentEmail(), created_at: nowIso(), void: false, void_reason: '' };
   await appendRows(fileId, tab, [toRow(tab, rec)]);
   // Iza cannot write `audit`; her entries carry created_by instead
-  if (tab !== 'wallet_balances') await appendRows(fileId, 'audit', [auditRow('add', tab, rec.id, summary)]);
+  if (tab !== 'wallet_balances' && audit) await appendRows(fileId, 'audit', [auditRow('add', tab, rec.id, summary)]);
   return rec;
 }
 

@@ -20,7 +20,7 @@ export function createApp({ files, email }) {
       return cache[s];
     },
     // Edits are void + append, so the model is simply reloaded after any write.
-    async add(s, tab, fields, summary) { const r = await addRecord(files[s].id, tab, fields, summary); delete cache[s]; return r; },
+    async add(s, tab, fields, summary, opts) { const r = await addRecord(files[s].id, tab, fields, summary, opts); delete cache[s]; return r; },
     async addMany(s, tab, list, summary) { const r = await addRecords(files[s].id, tab, list, summary); delete cache[s]; return r; },
     async void(s, tab, rec, reason) { await voidRecord(files[s].id, tab, rec, reason); delete cache[s]; },
     async seedAccounts(s) { await app.addMany(s, 'accounts', SEED[s], 'cont inițial'); },

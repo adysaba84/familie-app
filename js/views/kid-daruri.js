@@ -21,9 +21,9 @@ function giftCard(g, color) {
     h('span', { class: 'amt' }, '+' + amount(g.amount_minor, g.currency)));
 }
 
-export function giftsSection(model) {
+export function giftsSection(model, { canAdd = false } = {}) {
   const all = liveGifts(model);
-  if (!all.length) return null;
+  if (!all.length && !canAdd) return null;
   const totals = totalsByCurrency(all);
   const lei = totals.find((t) => t.currency === 'RON');
   const others = totals.filter((t) => t.currency !== 'RON');
@@ -62,11 +62,12 @@ export function giftsSection(model) {
   return h('section', { 'aria-label': 'Darurile mele' },
     h('h2', { class: 'kidh2' }, '🎁 Darurile mele'),
     h('p', { class: 'kidlead' }, 'Aici e povestea oamenilor care te-au răsfățat. Banii sunt deja în cutiile de mai sus, iar aici păstrăm amintirea.'),
-    h('div', { class: 'box', role: 'button', tabindex: '0', 'aria-label': 'Atinge pentru confetti', onclick: pop, style: 'text-align:center' },
+    all.length ? h('div', { class: 'box', role: 'button', tabindex: '0', 'aria-label': 'Atinge pentru confetti', onclick: pop, style: 'text-align:center' },
       h('p', { style: 'margin:0' }, 'De-a lungul anilor ai primit'),
       lei ? h('div', { class: 'amt', style: 'font-size:1.8rem' }, totalEl) : null,
       others.length ? h('p', { style: 'margin:4px 0 0' }, (lei ? 'și încă ' : '') + others.map((t) => amount(t.minor, t.currency)).join(' + ')) : null,
-      h('p', { style: 'margin:4px 0 0' }, `de la ${people} ${people === 1 ? 'om' : 'oameni'} dragi`)),
+      h('p', { style: 'margin:4px 0 0' }, `de la ${people} ${people === 1 ? 'om' : 'oameni'} dragi`)) : null,
+    canAdd ? h('a', { href: '#/iza/primit', class: 'btn', style: 'display:block;margin:10px 16px 0;text-align:center;text-decoration:none' }, '➕ Am primit un dar') : null,
     parts.length ? h('section', { class: 'colors' },
       h('div', { class: 'stackbar', role: 'img', 'aria-label': 'Cât ai primit de la fiecare' },
         ...parts.map((p) => { const seg = h('div', { style: `background:${p.color}` }); growOnView(seg, Math.max(3, p.share * 100) + '%'); return seg; })),
