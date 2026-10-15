@@ -62,6 +62,7 @@ export function giftsSection(model, { canAdd = false } = {}) {
   return h('section', { 'aria-label': 'Darurile mele' },
     h('h2', { class: 'kidh2' }, '🎁 Darurile mele'),
     h('p', { class: 'kidlead' }, 'Aici e povestea oamenilor care te-au răsfățat. Banii sunt deja în cutiile de mai sus, iar aici păstrăm amintirea.'),
+    h('p', { class: 'small', style: 'margin:0 16px 8px' }, 'Aici sunt doar banii primiți și puși în cont, până la 14 ani. Banii primiți în mână, pe care nu i-am pus în cont, nu sunt în listă. Dacă vrei, îi poți adăuga acum, de când avem aplicația.'),
     all.length ? h('div', { class: 'box', role: 'button', tabindex: '0', 'aria-label': 'Atinge pentru confetti', onclick: pop, style: 'text-align:center' },
       h('p', { style: 'margin:0' }, 'De-a lungul anilor ai primit'),
       lei ? h('div', { class: 'amt', style: 'font-size:1.8rem' }, totalEl) : null,
