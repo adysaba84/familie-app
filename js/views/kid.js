@@ -5,7 +5,7 @@ import { accountBalance } from '../calc.js';
 import { fullDate } from '../ui.js';
 import { daysBetween } from '../calc.js';
 import { giftsSection } from './kid-daruri.js';
-import { pop, countUp, growOnView, plant, colorBar, boxCard, school, didYouKnow, playground } from './kid-fun.js';
+import { pop, confetti, countUp, growOnView, plant, colorBar, boxCard, school, didYouKnow, playground } from './kid-fun.js';
 
 // Iza's screen: playful, read-only, one page. Shown to Iza when she signs in (her file is read-only for
 // her, enforced by Google) and to a parent as a preview ("Vezi ca Iza", for as long as her own account
@@ -88,11 +88,14 @@ export async function kidView(app, { asParent = false } = {}) {
   const futEl = h('span', { class: 'v' }, '~0 €');
   const nextB = plan && plan.ladder.length > 1 ? plan.ladder[1] : null;
   const days = nextB ? Math.max(0, daysBetween(app.today(), nextB.date)) : null;
+  // her birthday by month and day, independent of how the ladder counts years (it could already show next year's)
+  const birthdayToday = !!(plan && plan.params.birth && plan.params.birth.slice(5) === app.today().slice(5));
   const shown = boxes.boxes.filter((b) => b.eur > 0);
   root.classList.add('kid');
   requestAnimationFrame(() => {
     countUp(nowEl, boxes.totalEur, eur);
     if (plan && plan.atAdult) countUp(futEl, plan.atAdult.eur, approx);
+    if (birthdayToday) confetti(window.innerWidth / 2, 140);
   });
   mount(
     asParent ? h('div', { class: 'kidbar' }, h('a', { href: '#/active', class: 'back' }, '‹ Înapoi'), h('span', {}, 'Așa vede Iza'),
@@ -103,8 +106,9 @@ export async function kidView(app, { asParent = false } = {}) {
       h('div', { class: 'hero-col' }, h('span', { class: 'k' }, age == null ? 'Acum' : `Acum · ${age} ani`), nowEl),
       plan && plan.atAdult ? [h('span', { class: 'arrow', 'aria-hidden': 'true' }, '🚀'),
         h('div', { class: 'hero-col' }, h('span', { class: 'k' }, `La ${plan.params.adultAge} ani · estimare`), futEl)] : null),
-    nextB ? h('div', { class: 'bday' }, h('span', { 'aria-hidden': 'true' }, days === 0 ? '🎂' : '🎈'),
-      h('span', {}, days === 0 ? 'La mulți ani! Azi e ziua ta!' : `Mai sunt ${days} ${days === 1 ? 'zi' : 'zile'} până la ziua ta`)) : null,
+    birthdayToday ? h('div', { class: 'bday' }, h('span', { 'aria-hidden': 'true' }, '🎂'), h('span', {}, 'La mulți ani! Azi e ziua ta!'))
+      : nextB ? h('div', { class: 'bday' }, h('span', { 'aria-hidden': 'true' }, '🎈'),
+        h('span', {}, `Mai sunt ${days} ${days === 1 ? 'zi' : 'zile'} până la ziua ta`)) : null,
     walletSection(app, model, !asParent && app.canEdit('iza')),
     h('h2', { class: 'kidh2' }, 'Unde sunt banii tăi'),
     h('p', { class: 'kidlead' }, 'Banii nu stau toți într-un singur loc. Sunt împărțiți în „cutii”, fiecare cu rolul ei.'),
