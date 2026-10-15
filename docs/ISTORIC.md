@@ -16,6 +16,7 @@ Proiect început pe 2026-10-14, în câteva zile intense, în sesiuni Claude Cod
 - **Rolul îl dă Google**: permisiunea pe fișier, nu o setare a aplicației.
 - **Portofelele nu se preiau din Excel**: conturile există, soldurile le introduc Ady sau Iza.
 - **Fără protecții pe foile lui Iza**: „e responsabilă”. Nu se schimbă fără cerere explicită.
+- **„Primite” e un jurnal separat**: nu intră în niciun total, fără conversii valutare; dobânzile nu sunt daruri; modul copil îl numește „Darurile mele”, nu „cutie” (banii stau deja în cutii). Iza scrie rânduri fără audit (nu poate scrie `audit`).
 - **Cardurile de credit** se numără în Disponibil ca `sold − limită`.
 - **Gent Carmen** = asigurare cu acumulare, la valoarea de răscumpărare; contează ca disponibil (cu vânzare) în Pensii. **Gent Ady** intră în partea lui Iza.
 - **Obligațiunile** (inclusiv titluri de stat) rămân la valoarea investită până se introduce o valoare.

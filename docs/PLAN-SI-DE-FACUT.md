@@ -1,6 +1,6 @@
 # Starea acum și ce urmează
 
-Actualizat la 2026-10-15. Mută o linie din „De făcut” în „Gata” când se termină și actualizează `ECRANE.md` / `MODEL-DATE.md` dacă s-a schimbat comportamentul.
+Actualizat la 2026-10-15 (proiect pus pe pauză după „Primite”). Mută o linie din „De făcut” în „Gata” când se termină și actualizează `ECRANE.md` / `MODEL-DATE.md` dacă s-a schimbat comportamentul.
 
 ## Gata
 M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, depozite cu închidere și prelungire, Venituri și cheltuieli, Sume investite, ecranul lui Iza (cu educație financiară), „Primite” (jurnal de daruri, adulți și „Darurile mele” în modul copil), notificări Calendar (buton .ics și evenimente puse prin conectorul Google Calendar), previzualizare cu date inventate. Datele reale sunt importate în ambele foi și validate cu Excelul vechi (M7).
@@ -17,7 +17,7 @@ M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, 
 9. **Ramuri locale** unite în `main`: de șters (`git branch -d …`).
 10. **Calendarul „Familie”** există în contul lui Ady; evenimentele de scadență au mers în calendarul principal. Dacă se vrea partajat cu Carmen, se mută sau se re-creează acolo.
 
-11. **„Primite” importat** (2026-10-15): 208 rânduri din „Situatie KID CONT” scrise în foaia `gifts` din FIN · Iza (creată la import, plus rând în `audit`). De verificat în aplicație: ortografia numelor și rândurile fără motiv (mai ales oct. 2024).
+11. **„Primite” — stare (2026-10-15)**: importat din „Situatie KID CONT” în foaia `gifts` din FIN · Iza (210 rânduri; 15 „Randament” anulate, 4.824 lei din aug 2025 rămas la „Părinți”; Lucian/Grazelia = „Bunicul Lucian”/„Bunica Grazelia”). Încă netestat: Iza adaugă un dar cu contul ei (dacă dă „Nu am putut salva”, foaia `gifts` e protejată pentru ea în Drive). De verificat: ortografia numelor, rândurile fără motiv (mai ales oct. 2024), „Deea cu Diko” și „Bunicii Campean” (nume unite din variante). Dacă se vor totaluri unice lei+euro+dolari: conversie la cursul BNR (acum pe valute separate).
 
 ## Reguli la reluare (pe scurt)
 - Citește `CLAUDE.md`, apoi doar documentul care atinge sarcina: `ARHITECTURA.md` (cod), `MODEL-DATE.md` (foi), `ECRANE.md` (ecrane), `OPERARE.md` (rulare, deploy, Calendar, conector), `SECURITATE.md` (reguli).
