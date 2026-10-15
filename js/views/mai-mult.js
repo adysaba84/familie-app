@@ -14,7 +14,6 @@ export async function maiMultView(app) {
       h('section', { class: 'panel flush' },
         h('a', { class: 'listrow', href: '#/obligatii', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Pensii și datornici'), h('span', { class: 'xs muted' }, 'pensii, datornici (împrumuturi date), carduri de credit')), h('span', {}, '›')),
         app.spaces.includes('iza') ? h('a', { class: 'listrow', href: '#/iza', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Vezi ca Iza'), h('span', { class: 'xs muted' }, 'ecranul ei, doar de citire')), h('span', {}, '›')) : null,
-        h('a', { class: 'listrow', href: '#/verificare', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Verificare date'), h('span', { class: 'xs muted' }, 'soldurile la 31 dec, 26 sept și azi, de comparat cu Excelul')), h('span', {}, '›')),
         h('a', { class: 'listrow', href: '#/curs', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Curs BNR'), h('span', { class: 'xs muted' }, 'introdu cursul manual')), h('span', {}, '›')),
         h('a', { class: 'listrow', href: '#/setup', style: 'grid-template-columns:1fr 20px' }, h('span', { class: 'nm' }, h('b', {}, 'Alege fișierele'), h('span', { class: 'xs muted' }, 'dacă lipsește vreun fișier')), h('span', {}, '›'))),
       h('div', { class: 'savebar' }, h('button', { class: 'secondary', style: 'width:100%', onclick: () => app.logout() }, 'Ieșire')),

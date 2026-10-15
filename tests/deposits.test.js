@@ -152,7 +152,7 @@ test('aggregations agree on a closed deposit: situations, per-currency, BFG, pas
   eq(dl('2026-10-15'), 0);
   eq(depositRows(m, '2026-10-15'), []);
 });
-test('matured then viewed in the past: still counted (verificare at an earlier date)', () => {
+test('matured then viewed in the past: still counted (a past date)', () => {
   const d = dep({ status: 'matured', closed_date: '2026-10-20' });
   eq(depositTotalsByCurrency(base([d]), '2026-09-26')[0].native, 1000000);
 });

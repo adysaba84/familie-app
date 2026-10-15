@@ -38,7 +38,6 @@ function wealths(disponibil, pensii, indisponibil) {
   return { wealth1, wealth2: wealth1 + of(indisponibil, 'imobile'), excluded: { piloni: of(pensii, 'piloni'), imprumuturi: of(indisponibil, 'imprumuturi') } };
 }
 
-export const LAYER_TITLES = [['disponibil', 'DISPONIBIL'], ['pensii', 'PENSII'], ['indisponibil', 'INDISPONIBIL']];
 
 function emptyLayer(defs) {
   return { lines: defs.map(([key, label, section]) => ({ key, label, section, ron: 0 })), total: 0 };
