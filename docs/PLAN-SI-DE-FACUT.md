@@ -17,7 +17,7 @@ M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, 
 9. **Ramuri locale** unite în `main`: de șters (`git branch -d …`).
 10. **Calendarul „Familie”** există în contul lui Ady; evenimentele de scadență au mers în calendarul principal. Dacă se vrea partajat cu Carmen, se mută sau se re-creează acolo.
 
-11. **Import „Primite”**: fișierul pregătit e în `Finante\docs\primite-kid-cont.csv` (privat). Se importă din `#/primite` → „Import din fișier”, după confirmare. De verificat după import: ortografia numelor și rândurile fără motiv.
+11. **„Primite” importat** (2026-10-15): 208 rânduri din „Situatie KID CONT” scrise în foaia `gifts` din FIN · Iza (creată la import, plus rând în `audit`). De verificat în aplicație: ortografia numelor și rândurile fără motiv (mai ales oct. 2024).
 
 ## Reguli la reluare (pe scurt)
 - Citește `CLAUDE.md`, apoi doar documentul care atinge sarcina: `ARHITECTURA.md` (cod), `MODEL-DATE.md` (foi), `ECRANE.md` (ecrane), `OPERARE.md` (rulare, deploy, Calendar, conector), `SECURITATE.md` (reguli).
