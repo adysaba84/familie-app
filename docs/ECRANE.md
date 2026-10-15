@@ -4,7 +4,7 @@ Bara de jos (`ui.js`, `TABS`): **Active · Bursă · Depozite · Seif · Conturi
 
 | Rută | Fișier | Ce arată / face |
 |---|---|---|
-| `#/` , `#/setup` | `login.js`, `setup.js` | Autentificare Google; prima rulare: alege fișierele (Picker) sau creează cele două fișiere (cu confirmare, ca să nu apară fișiere asemănătoare) |
+| `#/` , `#/setup` | `login.js`, `setup.js` | Autentificare Google; prima rulare: alege fișierele partajate cu tine (Picker). Aplicația **nu mai creează fișiere** (decis 2026-10-15): un străin care se loghează nu poate porni o copie umplută cu conturile familiei |
 | `#/active` | `active.js` | Totalul în lei și euro, evoluția Wealth 1 pe date reale, structura pe categorii într-o singură listă cu subtotaluri, % din total / % din grupă, rânduri extensibile (sumă nativă + lei + euro), „+” mare pe fiecare categorie. Salvarea din orice formular întoarce la Active cu categoria deschisă (`return.js`) |
 | `#/bursa`, `/bursa/nou`, `/bursa/valoare` | `bursa*.js` | Valoarea pe platformă / tip / valută; formularul „sumă investită” și „valoare cont la dată” (câte un câmp pe valută × instrument) |
 | `#/depozite`, `/depozite/nou`, `/depozite/inchide` | `depozite.js`, `depozit-nou.js`, `depozit-inchide.js` | Listă grupată pe valută (lei, euro, dolari), ordonată după scadență; bare de scadențe pe 12 luni; BFG; adăugare/modificare/anulare; **închidere la scadență / înainte de scadență / prelungire**, cu `closed_date`, soldul contului de destinație și legătura `renewed_from_id`; depozitele scadente și neînchise sunt marcate. Butonul „Notificare” = eveniment Calendar (.ics sau link) |

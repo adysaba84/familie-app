@@ -2,8 +2,6 @@ import { CLIENT_ID } from './config.js';
 import { h, mount } from './dom.js';
 import { gisReady, signIn, trySilentSignIn, signOut, currentEmail, isSignedIn } from './auth.js';
 import { pickSpreadsheets } from './picker.js';
-import { createSpreadsheet } from './sheets.js';
-import { FILE_NAMES } from './schema.js';
 import { resolveRole } from './files.js';
 import { createApp } from './app.js';
 import { createRouter } from './router.js';
@@ -59,18 +57,6 @@ function showSetup(message, busy = false) {
         else showSetup({ error: true, text: 'Nu am găsit fișierele „FIN · …” în alegerea ta.' });
       } catch (e) {
         showSetup({ error: true, text: 'Nu am putut deschide selectorul de fișiere.' });
-      }
-    },
-    onCreate: async () => {
-      // creating files is for the very first setup only; anyone else would end up with empty look-alike files
-      if (!window.confirm('Asta creează fișiere NOI și GOALE în Drive-ul tău. Dacă fișierele „FIN · …” există deja (partajate cu tine), NU continua: apasă Anulează și folosește „Alege fișierele”. Continui cu crearea?')) return;
-      showSetup({ text: 'Se creează fișierele…' }, true);
-      try {
-        await createSpreadsheet(FILE_NAMES.parents);
-        await createSpreadsheet(FILE_NAMES.iza);
-        ready(await resolveRole());
-      } catch (e) {
-        showSetup({ error: true, text: 'Crearea fișierelor a eșuat.' });
       }
     },
   });

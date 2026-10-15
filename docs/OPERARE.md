@@ -27,7 +27,7 @@ Push direct pe `main` = deploy pe GitHub Pages (1–3 minute): `https://adysaba8
 2. Ecran de consimțământ: External, **In production** (altfel autorizarea expiră la 7 zile), scope `drive.file` (+ email), politică de confidențialitate `https://adysaba84.github.io/familie-app/privacy.html`. Ca să poți publica, Google cere pe Branding: nume, email de suport, home page, politică de confidențialitate, domeniu autorizat și email de contact.
 3. OAuth client Web cu originile din `SECURITATE.md` → `CLIENT_ID` în `js/config.js`.
 4. Cheie API restricționată (referreri + doar Picker) → `API_KEY` în `js/config.js`.
-5. Prima rulare: „Creează fișierele” (Ady) creează ambele fișiere cu toate foile; apoi Ady le partajează în Drive.
+5. Prima rulare: fișierele „FIN · …” există deja (create de Ady, partajate cu Carmen și Iza); fiecare le alege o dată cu „Alege fișierele” (Picker). Butonul „Creează fișierele” a fost scos din aplicație, ca un cont străin să nu poată crea fișiere pre-umplute cu conturile familiei (`seed.js`). Dacă fișierele s-ar pierde, se recreează din cod (istoric git) sau manual din Sheets.
 6. Carmen și Iza deschid aplicația o dată → „Alege fișierele” (Picker). Contul lui Iza e supravegheat (Family Link), deci autentificarea ei poate eșua: părinții folosesc „Modul copil”.
 7. Passkey + 2SV pe cele trei conturi.
 

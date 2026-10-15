@@ -1,20 +1,15 @@
 import { h, mount } from '../dom.js';
 
-// First run on a device: Ady creates the two spreadsheets; everyone else picks the files
-// shared with them (Picker grants the app access to exactly those files).
-export function setupView({ email, onCreate, onPick, onSignOut, busy, message }) {
+// First run on a device: pick the files shared with you (Picker grants the app access to exactly those files).
+// The app never creates files: a stranger who signs in cannot start a copy pre-filled with the family's account names.
+export function setupView({ email, onPick, onSignOut, busy, message }) {
   mount(
     h('div', { class: 'topbar' }, h('h1', {}, 'Configurare'), h('button', { class: 'secondary', onclick: onSignOut }, 'Ieșire')),
     h('p', { class: 'muted' }, 'Conectat ca ' + email),
     h('div', { class: 'card stack' },
       h('h2', {}, 'Alege fișierele'),
-      h('p', { class: 'muted' }, 'Alege fișierele „FIN · …” partajate cu tine în Google Drive.'),
+      h('p', { class: 'muted' }, 'Alege fișierele „FIN · …” partajate cu tine în Google Drive. Dacă nu le găsești, cere să-ți fie partajate.'),
       h('button', { onclick: onPick, disabled: busy }, 'Alege fișierele'),
-    ),
-    h('div', { class: 'card stack' },
-      h('h2', {}, 'Prima configurare (doar Ady)'),
-      h('p', { class: 'muted' }, 'Doar dacă fișierele nu există încă: creează în Drive-ul tău fișierele „FIN · Părinți” și „FIN · Iza”, goale. Dacă ți-au fost partajate, folosește „Alege fișierele” de mai sus.'),
-      h('button', { class: 'secondary', onclick: onCreate, disabled: busy }, 'Creează fișierele'),
     ),
     message ? h('p', { class: message.error ? 'err' : 'muted' }, message.text) : null,
   );
