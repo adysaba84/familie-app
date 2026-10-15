@@ -95,7 +95,7 @@ test('historyStart: the earliest balance / broker / physical date', () => {
   eq(historyStart(model), '2026-09-30');
   eq(historyStart({ balances: [], broker_flows: [], broker_values: [], physical_values: [] }), null);
 });
-test('LAYERS lists every line the screen shows', () => ok(LAYERS.disponibil.length === 6 && LAYERS.pensii.length === 4 && LAYERS.indisponibil.length === 2));
+test('LAYERS lists every line the screen shows', () => ok(LAYERS.disponibil.length === 6 && LAYERS.pensii.length === 4 && LAYERS.indisponibil.length === 3));
 
 test('snapshots: Excel totals count only before the group has detailed records, never on top of them', () => {
   const snap = (group, label, currency, amount_minor, date = '2025-12-31') => ({ group, label, currency, amount_minor, date });
@@ -188,4 +188,40 @@ test('categoryGroups: empty lines are left out (a space without pensions shows n
   const s = situation({ ...model, accounts: model.accounts.filter((x) => !['pen', 'gent'].includes(x.id)), broker_values: [], physical_values: model.physical_values.filter((v) => v.item_id !== 'g') }, '2026-10-14');
   const keys = categoryGroups(s).groups.flatMap((g) => g.blocks.flatMap((b) => b.lines.map((l) => l.key)));
   ok(!keys.includes('piloni') && !keys.includes('gent') && !keys.includes('bursa'));
+});
+
+// ---- Wealth 3 and "Alte bunuri" ----
+const withGoods = (extra = {}) => ({ ...model,
+  physical_items: [...model.physical_items, { id: 'og', kind: 'other_goods', currency: 'RON', description: 'Estimare alte bunuri', purchase_date: '2026-10-14' }],
+  physical_values: [...model.physical_values, { item_id: 'og', date: '2026-10-14', value_minor: 700000 }], ...extra });
+
+test('WEALTH 3 = disponibil + all of pensii (pillars too) + all of indisponibil; 1 and 2 keep their definitions', () => {
+  const s = situation(model, '2026-10-14');
+  eq(s.wealth3, s.disponibil.total + s.pensii.total + s.indisponibil.total);
+  eq(s.wealth3, s.wealth2 + s.excluded.piloni + s.indisponibil.lines.find((l) => l.key === 'alte_bunuri').ron + s.excluded.imprumuturi);
+  eq(s.wealth1, s.disponibil.total + 830000); eq(s.wealth2, s.wealth1 + 12500000); // unchanged
+});
+test('Alte bunuri: only in Wealth 3 and in Indisponibil; never in Disponibil, Wealth 1 or 2', () => {
+  const base = situation(model, '2026-10-14'), s = situation(withGoods(), '2026-10-14');
+  eq(s.indisponibil.lines.find((l) => l.key === 'alte_bunuri').ron, 700000);
+  eq(s.indisponibil.total, base.indisponibil.total + 700000);
+  eq(s.wealth3, base.wealth3 + 700000);
+  eq(s.wealth1, base.wealth1); eq(s.wealth2, base.wealth2); eq(s.disponibil.total, base.disponibil.total); eq(s.pensii.total, base.pensii.total);
+  eq(s.items.alte_bunuri.map((i) => [i.label, i.native, i.currency]), [['Estimare alte bunuri', 700000, 'RON']]);
+});
+test('Alte bunuri count at every date (entered today, no fake growth) and use the latest value on or before the date', () => {
+  const m = withGoods({ physical_values: [...model.physical_values, { item_id: 'og', date: '2026-10-14', value_minor: 700000 }, { item_id: 'og', date: '2026-12-01', value_minor: 900000 }] });
+  const at = (d) => situation(m, d).indisponibil.lines.find((l) => l.key === 'alte_bunuri').ron;
+  eq(at('2025-12-31'), 700000); eq(at('2026-10-14'), 700000); eq(at('2026-12-01'), 900000);
+  eq(situation(m, '2025-12-31').wealth3 - situation(model, '2025-12-31').wealth3, 700000); // a constant add-on: a comparison shows no growth from it
+});
+test('Alte bunuri in euro are converted at the rate of the date; rows of an unknown kind are ignored (old sheets)', () => {
+  const eur = withGoods({ physical_items: [...model.physical_items, { id: 'og', kind: 'other_goods', currency: 'EUR', purchase_date: '2026-10-14' }, { id: 'old', kind: '', currency: 'RON', purchase_date: '2026-01-01' }],
+    physical_values: [...model.physical_values, { item_id: 'og', date: '2026-10-14', value_minor: 10000 }, { item_id: 'old', date: '2026-10-14', value_minor: 999 }] });
+  eq(situation(eur, '2026-10-14').indisponibil.lines.find((l) => l.key === 'alte_bunuri').ron, 50000); // 100 euro at 5
+  eq(situation(eur, '2026-10-14').wealth1, situation(model, '2026-10-14').wealth1);
+});
+test('combine keeps Wealth 3 additive', () => {
+  const a = situation(withGoods(), '2026-10-14'), b = situation(model, '2026-10-14');
+  eq(combine([a, b]).wealth3, a.wealth3 + b.wealth3);
 });

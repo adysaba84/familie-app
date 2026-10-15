@@ -6,8 +6,8 @@ import { finish } from '../return.js';
 let form = null;
 const fresh = (app) => ({ kind: 'gold', sub: 'property', description: '', quantity: '1', amount: '', currency: 'EUR', date: app.today() });
 
-// From Active: the same form with the kind pre-selected ('gold' | 'cash' | 'property').
-export function startNew(app, kind) { form = { ...fresh(app), kind }; }
+// From Active: the same form with the kind pre-selected ('gold' | 'cash' | 'property' | 'other').
+export function startNew(app, kind) { form = { ...fresh(app), kind, currency: kind === 'other' ? 'RON' : 'EUR' }; }
 
 // "+ Alt obiect": a gold item (purchase value in lei) or a cash currency kept in the safe.
 export async function fiziceNouView(app) {
@@ -17,7 +17,7 @@ export async function fiziceNouView(app) {
     const space = app.space;
     const set = (patch) => { Object.assign(form, patch); app.rerender(); };
     const err = h('p', { class: 'err sm', style: 'margin:0' });
-    const desc = h('input', { class: 'input', value: form.description, placeholder: form.kind === 'gold' ? 'ex. 1 uncie Filarmonica Viena' : 'ex. Seif: rezervă euro', 'aria-label': 'Descriere', oninput: (e) => { form.description = e.target.value; } });
+    const desc = h('input', { class: 'input', value: form.description, placeholder: form.kind === 'gold' ? 'ex. 1 uncie Filarmonica Viena' : form.kind === 'other' ? 'ex. Estimare alte bunuri (mobilier, electronice)' : 'ex. Seif: rezervă euro', 'aria-label': 'Descriere', oninput: (e) => { form.description = e.target.value; } });
     const qty = h('input', { class: 'input', value: form.quantity, inputmode: 'decimal', 'aria-label': 'Cantitate', oninput: (e) => { form.quantity = e.target.value; } });
     const amount = h('input', { class: 'input amt', value: form.amount, inputmode: 'decimal', 'aria-label': form.kind === 'gold' ? 'Valoare de cumpărare în lei' : 'Suma', placeholder: '0', oninput: (e) => { form.amount = e.target.value; } });
     const dateIn = h('input', { class: 'input', type: 'date', value: form.date, onchange: (e) => { form.date = e.target.value; } });
@@ -31,7 +31,7 @@ export async function fiziceNouView(app) {
       e.target.disabled = true;
       try {
         const gold = form.kind === 'gold';
-        const kind = form.kind === 'property' ? form.sub : form.kind; // house / car / garage
+        const kind = form.kind === 'property' ? form.sub : form.kind === 'other' ? 'other_goods' : form.kind; // house / car / garage / other goods
         const item = await app.add(space, 'physical_items', {
           kind, currency: gold ? 'RON' : form.currency, description: form.description.trim(), quantity: q,
           purchase_value_minor: gold ? v : '', purchase_date: form.date,
@@ -49,15 +49,15 @@ export async function fiziceNouView(app) {
       body: [
         h('form', { class: 'form', onsubmit: (e) => e.preventDefault() },
           h('fieldset', {}, h('legend', {}, 'Ce adaugi'),
-            h('div', { class: 'opts', style: 'grid-template-columns:repeat(3,minmax(0,1fr))' },
-              opt(form.kind === 'gold', 'Aur', () => set({ kind: 'gold' })), opt(form.kind === 'cash', 'Numerar', () => set({ kind: 'cash' })), opt(form.kind === 'property', 'Imobil', () => set({ kind: 'property' })))),
+            h('div', { class: 'opts', style: 'grid-template-columns:repeat(2,minmax(0,1fr))' },
+              opt(form.kind === 'gold', 'Aur', () => set({ kind: 'gold' })), opt(form.kind === 'cash', 'Numerar', () => set({ kind: 'cash' })), opt(form.kind === 'property', 'Imobil', () => set({ kind: 'property' })), opt(form.kind === 'other', 'Alte bunuri', () => set({ kind: 'other', currency: 'RON' })))),
           form.kind === 'property' ? h('fieldset', {}, h('legend', {}, 'Ce fel'),
             h('div', { class: 'opts', style: 'grid-template-columns:repeat(3,minmax(0,1fr))' },
               ...[['property', 'Locuință'], ['vehicle', 'Mașină'], ['garage', 'Garaj']].map(([k, t]) => opt(form.sub === k, t, () => set({ sub: k }))))) : null,
           h('label', { class: 'f' }, 'Descriere', desc),
           form.kind === 'gold' ? h('label', { class: 'f' }, 'Cantitate (bucăți)', qty) : h('label', { class: 'f' }, 'Valută',
             h('select', { class: 'input', onchange: (e) => { form.currency = e.target.value; } }, ...['EUR', 'USD', 'RON'].map((c) => h('option', { value: c, selected: c === form.currency }, c)))),
-          h('label', { class: 'f' }, form.kind === 'gold' ? 'Valoare de cumpărare (lei)' : form.kind === 'property' ? 'Valoare estimată' : 'Suma în seif', amount),
+          h('label', { class: 'f' }, form.kind === 'gold' ? 'Valoare de cumpărare (lei)' : form.kind === 'property' || form.kind === 'other' ? 'Valoare estimată' : 'Suma în seif', amount),
           h('label', { class: 'f' }, form.kind === 'gold' ? 'Data cumpărării' : 'La data', dateIn)),
         h('div', { class: 'savebar' }, err, app.canEdit() ? h('button', { class: 'btn big', onclick: save }, 'Salvează') : h('p', { class: 'muted' }, 'Ai acces doar de citire.')),
       ],

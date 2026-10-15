@@ -472,6 +472,10 @@ export function depositTotalsByCurrency(model, asOf) {
 // Property-like items (house, car, garage): latest value in its own currency + RON equivalent. Not part of the
 // "Active" totals (they are not financial assets); they live in the indisponibil layer of the situations.
 export const PROPERTY_KINDS = ['property', 'vehicle', 'garage'];
+// Other goods (furniture, electronics, jewellery...): an estimate typed by hand, counted like property (every date, latest value
+// on or before the date else the first one entered), but its own line in Indisponibil and in no wealth except Wealth 3.
+export const OTHER_GOODS_KIND = 'other_goods';
+export const HELD_KINDS = [...PROPERTY_KINDS, OTHER_GOODS_KIND];
 // Property is not a "new" asset: the house, car and garage existed long before they were entered, so they count at EVERY
 // date (a comparison must not show them as growth). Value = latest on or before asOf, else the earliest one entered.
 export function propertyValue(model, it, asOf) {
@@ -482,7 +486,7 @@ export function propertyValue(model, it, asOf) {
   return v ? v.value_minor : it.purchase_value_minor || 0;
 }
 export function propertyItems(model, asOf) {
-  return model.physical_items.filter((it) => live(it) && PROPERTY_KINDS.includes(it.kind)).map((it) => {
+  return model.physical_items.filter((it) => live(it) && HELD_KINDS.includes(it.kind)).map((it) => {
     const v = model.physical_values.filter((x) => live(x) && x.item_id === it.id && x.date <= asOf).pop();
     const native = propertyValue(model, it, asOf);
     return { item: it, native, ron: toRon(native, it.currency, model.rates, asOf), valueDate: v ? v.date : it.purchase_date };

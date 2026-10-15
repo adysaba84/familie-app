@@ -1,4 +1,4 @@
-import { toRon, fromRon, depositIncluded, latestBalances, brokerGroups, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
+import { toRon, fromRon, depositIncluded, latestBalances, brokerGroups, monthEnd, addMonths, PROPERTY_KINDS, HELD_KINDS, OTHER_GOODS_KIND, propertyValue } from './calc.js';
 
 // "Situații": the family position in layers. PURE (no DOM, no network).
 //   DISPONIBIL   = cash: current accounts, wallets, vouchers, savings, deposits, cash in the safe, credit cards counted
@@ -7,6 +7,7 @@ import { toRon, fromRon, depositIncluded, latestBalances, brokerGroups, monthEnd
 //                  "indisponibili pana la pensie" (pillars 2 and 3)
 //   INDISPONIBIL = property (house, car, garage) and loans given: counted, but cannot be touched right away
 //   WEALTH 1     = disponibil + pensii disponibili cu vanzare (bursa, aur, Gent)            [no pillars, no loans, no property]
+//   WEALTH 3     = everything: disponibil + all of pensii (pillars too) + all of indisponibil (property, other goods, loans)
 //   WEALTH 2     = wealth 1 + property (casa, masina, garaj)                                [still no pillars, no loans]
 //   The pillars (P2/P3) and the loans given are shown as EXCLUDED: they are in their layers but in neither wealth.
 // Every number is in RON bani at `asOf` (euro is derived by the caller); disponibil also carries the native amount
@@ -27,7 +28,7 @@ export const LAYERS = {
     ['bursa', 'Bursă', 'vanzare'], ['aur', 'Aur fizic', 'vanzare'], ['gent', 'Gent (valoare de răscumpărare)', 'vanzare'],
     ['piloni', 'Pilon 2 și 3', 'pensie'],
   ],
-  indisponibil: [['imobile', 'Casă, mașină, garaj'], ['imprumuturi', 'Împrumuturi date (nu pot fi atinse imediat)']],
+  indisponibil: [['imobile', 'Casă, mașină, garaj'], ['alte_bunuri', 'Alte bunuri (estimare)'], ['imprumuturi', 'Împrumuturi date (nu pot fi atinse imediat)']],
 };
 export const PENSII_SECTIONS = { vanzare: 'Disponibili cu vânzare', pensie: 'Indisponibili până la pensie' };
 // Wealth 1 / 2 and the excluded amounts, from the three layers (also used on combined layers: everything is additive).
@@ -35,7 +36,7 @@ function wealths(disponibil, pensii, indisponibil) {
   const sellable = pensii.lines.filter((l) => l.section === 'vanzare').reduce((t, l) => t + l.ron, 0);
   const of = (layer, key) => layer.lines.find((l) => l.key === key).ron;
   const wealth1 = disponibil.total + sellable;
-  return { wealth1, wealth2: wealth1 + of(indisponibil, 'imobile'), excluded: { piloni: of(pensii, 'piloni'), imprumuturi: of(indisponibil, 'imprumuturi') } };
+  return { wealth1, wealth2: wealth1 + of(indisponibil, 'imobile'), wealth3: disponibil.total + pensii.total + indisponibil.total, excluded: { piloni: of(pensii, 'piloni'), imprumuturi: of(indisponibil, 'imprumuturi') } };
 }
 
 
@@ -136,12 +137,13 @@ export function situation(model, asOf, { rateDate } = {}) {
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.created_at || '') < (b.created_at || '') ? -1 : (a.created_at || '') > (b.created_at || '') ? 1 : (a._row || 0) - (b._row || 0)));
   for (const v of values) pv.set(v.item_id, v);
   for (const it of model.physical_items) {
-    if (!live(it) || (it.purchase_date > asOf && !PROPERTY_KINDS.includes(it.kind))) continue; // property counts at every date
+    if (!live(it) || (it.purchase_date > asOf && !HELD_KINDS.includes(it.kind))) continue; // property and other goods count at every date
     const v = pv.get(it.id);
     const row = { label: it.description || it.kind, sub: '', currency: it.currency, date: v ? v.date : it.purchase_date, itemId: it.id };
     if (it.kind === 'gold') { const n = v ? v.value_minor : it.purchase_value_minor || 0; put(pensii, 'aur', n, { ...row, native: n, currency: 'RON' }); }
     else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; put(disponibil, 'seif', toRon(n, it.currency, rates, rd), { ...row, native: n }); addNative(it.currency, n); }
     else if (PROPERTY_KINDS.includes(it.kind)) { const n = propertyValue(model, it, asOf); put(indisponibil, 'imobile', toRon(n, it.currency, rates, rd), { ...row, native: n }); }
+    else if (it.kind === OTHER_GOODS_KIND) { const n = propertyValue(model, it, asOf); put(indisponibil, 'alte_bunuri', toRon(n, it.currency, rates, rd), { ...row, native: n }); }
   }
 
   // one entry per (broker account, currency): the same granularity brokerSummary sums, so the lines add up exactly

@@ -23,7 +23,7 @@ export async function fiziceView(app) {
     const cashRon = cash.reduce((s, c) => s + c.ron, 0);
     const props = propertyItems(m, today);
     const propsRon = props.reduce((s, p) => s + p.ron, 0);
-    const KIND_NAME = { property: 'Locuință', vehicle: 'Mașină', garage: 'Garaj' };
+    const KIND_NAME = { property: 'Locuință', vehicle: 'Mașină', garage: 'Garaj', other_goods: 'Alte bunuri' };
     const canEdit = app.canEdit();
     const space = app.space;
     const err = h('p', { class: 'err sm', style: 'margin:0' });
@@ -98,7 +98,7 @@ export async function fiziceView(app) {
           h('div', { class: 'split', style: 'height:10px' }, ...cash.filter((c) => c.ron > 0).map((c) => h('div', { style: `width:${(c.ron * 100) / (cashRon || 1)}%;background:${CCY_COLOR[c.item.currency] || '#888'}` }))),
           ...cash.map(cashRow)) : null,
         props.length ? h('section', { class: 'panel', style: 'gap:10px' },
-          h('div', { class: 'between' }, h('span', { class: 'up' }, 'Imobile · indisponibile'), h('span', { class: 'mono', style: 'font-weight:600' }, lei(propsRon) + ' lei')),
+          h('div', { class: 'between' }, h('span', { class: 'up' }, 'Imobile și alte bunuri · indisponibile'), h('span', { class: 'mono', style: 'font-weight:600' }, lei(propsRon) + ' lei')),
           h('span', { class: 'xs muted mono' }, eurApprox(m, propsRon, today) + ' · estimări, nu intră în „Total active”'),
           ...props.map(propRow)) : null,
         canEdit && (golds.length || cash.length || props.length) ? h('a', { class: 'btn secondary', href: '#/fizice/nou', style: 'margin:16px;color:var(--ink)' }, '+ Obiect nou (aur, numerar, imobil)') : null,

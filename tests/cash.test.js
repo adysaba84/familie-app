@@ -77,3 +77,9 @@ test('savedPeriods / defaultStart: newest first with their items; the next page 
   eq(defaultStart([first], first, D1), '2026-09-20'); // first time: the latest earlier day with balances
   eq(defaultStart([mk()], mk(), D1), '2026-09-15'); // nothing at all: a month back
 });
+
+test('other goods (an estimate, not cash) never change the Disponibil_cash or the expenses estimate', () => {
+  const withGoods = { ...parents, physical_items: [{ id: 'og', kind: 'other_goods', currency: 'RON', purchase_date: D0 }], physical_values: [{ item_id: 'og', date: D1, value_minor: 5000000 }] };
+  eq(cashAvailable([withGoods, iza], D1, D1), cashAvailable([parents, iza], D1, D1));
+  eq(periodResult([withGoods, iza], { d0: D0, d1: D1, items: [income(500000)] }).expenses, periodResult([parents, iza], { d0: D0, d1: D1, items: [income(500000)] }).expenses);
+});

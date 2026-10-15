@@ -4,6 +4,7 @@ import { situation, comparisonDates, wealthStructure, wealthSeries, seriesStarts
 import { formatWhole } from '../money.js';
 import { wealthLine } from '../charts.js';
 import { setReturn, openCats } from '../return.js';
+import { wealthList } from './wealth-ui.js';
 import { notifyButton, googleLink, notifyBanner, depositInput } from '../notify.js';
 import { startSolduri } from './solduri.js';
 import { startEdit } from './depozit-nou.js';
@@ -22,9 +23,9 @@ const depositsLabel = (n) => (n === 1 ? '1 depozit activ' : `${n} depozite activ
 
 // where each category lives in full (actions: add, close / roll over a deposit, update balances...)
 const OPEN_LINK = { conturi: '#/conturi', economii: '#/conturi', depozite: '#/depozite', seif: '#/fizice', carduri: '#/obligatii', bursa: '#/bursa',
-  aur: '#/fizice', gent: '#/obligatii', piloni: '#/obligatii', imobile: '#/fizice', imprumuturi: '#/obligatii', asigurari: '#/obligatii' };
+  aur: '#/fizice', alte_bunuri: '#/fizice', gent: '#/obligatii', piloni: '#/obligatii', imobile: '#/fizice', imprumuturi: '#/obligatii', asigurari: '#/obligatii' };
 const NOUN = { conturi: ['cont', 'conturi'], economii: ['cont', 'conturi'], carduri: ['card', 'carduri'], bursa: ['cont', 'conturi'], seif: ['sumă', 'sume'], aur: ['piesă', 'piese'],
-  gent: ['poliță', 'polițe'], piloni: ['pilon', 'piloni'], imobile: ['bun', 'bunuri'], imprumuturi: ['datornic', 'datornici'], asigurari: ['cont', 'conturi'] };
+  gent: ['poliță', 'polițe'], piloni: ['pilon', 'piloni'], imobile: ['bun', 'bunuri'], alte_bunuri: ['bun', 'bunuri'], imprumuturi: ['datornic', 'datornici'], asigurari: ['cont', 'conturi'] };
 const LINE_COLOR = { disponibil: '#1F6F5C', vanzare: '#5FA48F', pensie: '#A9CFC2', indisponibil: '#C9A24A' };
 const BAL_KINDS = { conturi: ['current', 'wallet', 'voucher'], economii: ['savings'], carduri: ['card'], asigurari: ['insurance'], imprumuturi: ['loan'] };
 
@@ -44,16 +45,6 @@ export async function activeView(app) {
     const eurDelta = (a, b) => eurGrowth(m.rates, a, today, b, cmpDate);
     const small = (x) => (Math.abs(x) < 50 ? '0 €' : `${signed(x)} €`);
 
-    const wealthBlock = (title, sub, a, b) => {
-      const diff = a - b, cls = diff < 0 ? 'neg' : diff > 0 ? 'pos' : 'muted';
-      const p = b !== 0 ? Math.round((diff * 10000) / Math.abs(b)) : null;
-      return h('div', { style: 'display:flex;flex-direction:column;gap:2px;min-width:0' },
-        h('span', { class: 'up' }, title), h('span', { class: 'xs muted' }, sub),
-        h('div', { class: 'big-num', style: 'font-size:21px;white-space:nowrap' }, lei(a), ' ', h('small', {}, 'lei')),
-        h('span', { class: 'xs muted mono' }, eurTxt(a)),
-        h('span', { class: 'xs ' + cls, style: 'font-weight:600' }, `${diff === 0 ? '0' : signed(diff)} lei${p == null ? '' : ` (${p > 0 ? '+' : p < 0 ? '−' : ''}${(Math.abs(p) / 100).toFixed(1).replace('.', ',')}%)`}`),
-        h('span', { class: 'xs mono ' + cls }, small(eurDelta(a, b))));
-    };
 
     const series = wealthSeries(m, today);
     const first = series[0];
@@ -82,6 +73,7 @@ export async function activeView(app) {
       if (k === 'seif') return () => go(['/fizice/nou'], k, () => startNew(app, 'cash'), '/fizice/nou');
       if (k === 'aur') return () => go(['/fizice/nou'], k, () => startNew(app, 'gold'), '/fizice/nou');
       if (k === 'imobile') return () => go(['/fizice/nou'], k, () => startNew(app, 'property'), '/fizice/nou');
+      if (k === 'alte_bunuri') return () => go(['/fizice/nou'], k, () => startNew(app, 'other'), '/fizice/nou');
       return null;
     };
     const btn = (text, onclick) => h('button', { type: 'button', class: 'secondary', style: 'flex:0 1 auto;min-width:96px;min-height:40px;padding:0 14px;font-size:12px;white-space:nowrap', onclick }, text);
@@ -168,9 +160,7 @@ export async function activeView(app) {
             h('span', {}, x.label), h('span', { class: 'mono' }, lei(x.ron)),
             h('span', { class: 'xs muted mono', style: 'min-width:92px;text-align:right' }, `${eurTxt(x.ron)} · ${pct(x.ron)}%`)))),
           h('span', { class: 'xs muted' }, 'Procentele sunt din suma celor patru straturi; pilonii și împrumuturile date apar aici, dar nu intră în wealth.'),
-          h('div', { class: 'sep', style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:10px' },
-            wealthBlock('Wealth 1', 'disponibil + pensii cu vânzare', now.wealth1, then.wealth1),
-            wealthBlock('Wealth 2', 'wealth 1 + casă, mașină, garaj', now.wealth2, then.wealth2)),
+          h('div', { class: 'sep', style: 'padding-top:2px' }, wealthList([{ n: 1, now: now.wealth1, then: then.wealth1 }, { n: 2, now: now.wealth2, then: then.wealth2 }, { n: 3, now: now.wealth3, then: then.wealth3 }], { eurTxt, eurDelta })),
           h('span', { class: 'xs muted' }, `față de ${shortDate(cmpDate)} · euro la cursul fiecărei date`)),
         h('section', { class: 'panel' },
           h('span', { class: 'up' }, 'Wealth 1 în timp'),

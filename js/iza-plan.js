@@ -63,7 +63,7 @@ export function izaBoxes(model, asOf) {
   const pv = new Map();
   for (const v of model.physical_values.filter((x) => live(x) && x.date <= asOf).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))) pv.set(v.item_id, v);
   for (const it of model.physical_items) {
-    if (!live(it) || it.purchase_date > asOf) continue;
+    if (!live(it) || it.purchase_date > asOf || !['gold', 'cash'].includes(it.kind)) continue; // property and other goods are not part of the plan
     const v = pv.get(it.id);
     const minor = v ? v.value_minor : it.purchase_value_minor || 0;
     add(it.kind === 'cash' && it.currency !== 'RON' ? 'foreign' : 'savings', minor, it.kind === 'gold' ? 'RON' : it.currency);

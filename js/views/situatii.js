@@ -1,6 +1,7 @@
 import { h } from '../dom.js';
 import { situation, combine, comparisonDates, historyStart, PENSII_SECTIONS, eurGrowth } from '../situations.js';
 import { formatWhole } from '../money.js';
+import { wealthList } from './wealth-ui.js';
 import { frame, backHead, guarded, loading, lei, signed, eurOf, fullDate, shortDate } from '../ui.js';
 
 // Situații: DISPONIBIL (cash) / PENSII / INDISPONIBIL; WEALTH 1 and 2, now versus the end of last month or the
@@ -88,16 +89,6 @@ export async function situatiiView(app) {
     const nativeLine = h('div', { class: 'xs muted mono', style: 'margin-top:4px' },
       `Cash pe valute: ${formatWhole(n.RON || 0)} lei · ${formatWhole(n.EUR || 0)} € · ${formatWhole(n.USD || 0)} $`);
 
-    // two wealths (see situations.js); pillars and loans are excluded from both and shown as such
-    const wealthBlock = (title, sub, now, then) => {
-      const d = delta(now, then);
-      return h('div', { style: 'display:flex;flex-direction:column;gap:2px;min-width:0' },
-        h('span', { class: 'up' }, title), h('span', { class: 'xs muted' }, sub),
-        h('div', { class: 'big-num', style: 'font-size:24px' }, lei(now), ' ', h('small', {}, 'lei')),
-        h('span', { class: 'xs muted mono' }, eurTxt(now)),
-        h('span', { class: 'xs ' + d.cls, style: 'font-weight:600' }, `${d.diff === 0 ? '0' : signed(d.diff)} lei${pctText(d.pct)}`),
-        h('span', { class: 'xs mono ' + d.cls }, eurSignedTxt(eurDelta(now, then))));
-    };
     frame(app, {
       tab: 'situatii',
       head: backHead('#/active', 'Situații', h('span', { class: 'sm muted', style: 'padding-right:6px' }, shortDate(today))),
@@ -106,18 +97,16 @@ export async function situatiiView(app) {
         seg(Object.entries(CMP), cmp, (k) => { cmp = k; app.rerender(); }, 2),
         h('section', { class: 'panel' },
           h('span', { class: 'up' }, 'Wealth · ' + PERSON[who]),
-          h('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px' },
-            wealthBlock('Wealth 1', 'disponibil + bursă, aur, Gent', cur.wealth1, past.wealth1),
-            wealthBlock('Wealth 2', 'wealth 1 + casă, mașină, garaj', cur.wealth2, past.wealth2)),
+          wealthList([{ n: 1, now: cur.wealth1, then: past.wealth1 }, { n: 2, now: cur.wealth2, then: past.wealth2 }, { n: 3, now: cur.wealth3, then: past.wealth3 }], { eurTxt, eurDelta }),
           h('span', { class: 'xs muted' }, `${CMP[cmp]}: ${fullDate(cmpDate)} · euro la cursul fiecărei date`),
           h('div', { class: 'sep stack xs muted', style: 'gap:2px;padding-top:6px' },
-            h('span', {}, 'Excluse din ambele (nu pot fi atinse imediat):'),
+            h('span', {}, 'Excluse din Wealth 1 și 2 (nu pot fi atinse imediat):'),
             h('span', { class: 'mono' }, `Pilon 2 și 3: ${lei(cur.excluded.piloni)} lei (${eurTxt(cur.excluded.piloni)}) · Împrumuturi date: ${lei(cur.excluded.imprumuturi)} lei (${eurTxt(cur.excluded.imprumuturi)})`)),
           incomplete ? h('span', { class: 'xs neg', style: 'margin-top:4px' }, `Istoricul începe la ${fullDate(first)}: diferențele includ intrarea datelor în aplicație, nu doar creșterea.`) : null),
         layerCard('Disponibil', 'cash: conturi, depozite, seif, carduri', cur.disponibil, past.disponibil, nativeLine),
         layerCard('Pensii', 'bursă, aur, Gent (se pot vinde) și pilonii (blocați până la pensie)', cur.pensii, past.pensii, null),
-        layerCard('Indisponibil', 'casă, mașină, garaj și împrumuturi date: nu pot fi atinse imediat', cur.indisponibil, past.indisponibil, null),
-        h('p', { class: 'xs muted', style: 'margin:12px 16px' }, 'Wealth 1 = disponibil + pensii cu vânzare; Wealth 2 = wealth 1 + imobile. Pilonii și împrumuturile date nu intră în niciunul. Euro: fiecare sumă la cursul BNR din ziua ei (sau cel mai recent), deci diferența în euro nu include mișcarea cursului. Pensiile, împrumuturile date și cardurile de credit apar după ce le adăugăm.'),
+        layerCard('Indisponibil', 'casă, mașină, garaj, alte bunuri și împrumuturi date: nu pot fi atinse imediat', cur.indisponibil, past.indisponibil, null),
+        h('p', { class: 'xs muted', style: 'margin:12px 16px' }, 'Wealth 1 = disponibil + pensii cu vânzare; Wealth 2 = wealth 1 + imobile; Wealth 3 = totul, cu piloni, împrumuturi și alte bunuri. Euro: fiecare sumă la cursul BNR din ziua ei (sau cel mai recent), deci diferența în euro nu include mișcarea cursului. Pensiile, împrumuturile date și cardurile de credit apar după ce le adăugăm.'),
       ],
     });
   });
