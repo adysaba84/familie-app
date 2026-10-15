@@ -5,12 +5,13 @@
 export const openCats = new Set(); // Active categories expanded in place (read by the Active screen)
 let ret = null;
 
-export function setReturn(allowedRoutes, openKey) { ret = { allowed: allowedRoutes, openKey }; }
+// back = where finish() goes (default Active); openKey = the Active category to leave open there (optional)
+export function setReturn(allowedRoutes, openKey, back = '/active') { ret = { allowed: allowedRoutes, openKey, back }; }
 
 // After a successful save: back to Active (category open) if a flow started there, else where the form normally goes.
 // fallback null = stay on the current screen and re-render.
 export function finish(app, fallback) {
-  if (ret) { openCats.add(ret.openKey); ret = null; app.go('/active'); return; }
+  if (ret) { if (ret.openKey) openCats.add(ret.openKey); const to = ret.back; ret = null; app.go(to); return; }
   if (fallback) app.go(fallback); else app.rerender();
 }
 

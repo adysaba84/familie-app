@@ -1,4 +1,4 @@
-import { TABS } from './schema.js';
+import { TABS, PARENTS_ONLY_TABS } from './schema.js';
 import { batchGet, appendRows, updateRange, tabTitles, addTab } from './sheets.js';
 import { parseTable, toRow, columnLetter } from './model.js';
 import { currentEmail } from './auth.js';
@@ -13,13 +13,13 @@ const nowIso = () => new Date().toISOString();
 // schema; a tab that already has data and a different header is refused (needs a manual migration).
 // Returns the tabs that exist.
 const checked = new Map();
-async function ensureSchema(fileId) {
+async function ensureSchema(fileId, names) {
   if (checked.has(fileId)) return checked.get(fileId);
   const titles = new Set(await tabTitles(fileId));
-  for (const tab of TAB_NAMES.filter((t) => !titles.has(t))) {
+  for (const tab of names.filter((t) => !titles.has(t))) {
     try { await addTab(fileId, tab, TABS[tab]); titles.add(tab); } catch (e) { /* read-only: leave it out */ }
   }
-  const present = TAB_NAMES.filter((t) => titles.has(t));
+  const present = names.filter((t) => titles.has(t));
   const heads = await batchGet(fileId, present.map((t) => `${t}!1:2`));
   for (let i = 0; i < present.length; i++) {
     const tab = present[i], want = TABS[tab];
@@ -34,8 +34,10 @@ async function ensureSchema(fileId) {
   return present;
 }
 
-export async function loadModel(fileId) {
-  const present = await ensureSchema(fileId);
+// `space` = 'parents' | 'iza': Iza's file does not get the parents-only tabs (money pages, salaries)
+export async function loadModel(fileId, space = 'parents') {
+  const names = space === 'iza' ? TAB_NAMES.filter((t) => !PARENTS_ONLY_TABS.includes(t)) : TAB_NAMES;
+  const present = await ensureSchema(fileId, names);
   const tables = await batchGet(fileId, present);
   const model = {};
   for (const t of TAB_NAMES) model[t] = [];

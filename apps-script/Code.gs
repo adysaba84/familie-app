@@ -167,7 +167,7 @@ function ensureBalancesSeries_() {
   const start = parseAt_(planNextBalancesDate_(todayYmd_(), Number(Utilities.formatDate(new Date(), TZ, 'H'))), PLAN_HOUR_, 0);
   const series = cal.createEventSeries(BALANCES_TITLE, start, new Date(start.getTime() + PLAN_MINUTES_ * 60000),
     CalendarApp.newRecurrence().addMonthlyRule().onlyOnMonthDay(15),
-    { description: 'Deschide aplicația → Active (conturile cu sold vechi apar marcate) → +' });
+    { description: 'Deschide aplicația → Active (conturile cu sold vechi apar marcate) → +. Apoi: Active → Venituri și cheltuieli.' });
   series.removeAllReminders(); series.addPopupReminder(0);
   syncBalanceGuests_(series, []);
   return true;

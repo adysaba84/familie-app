@@ -156,6 +156,8 @@ export async function activeView(app) {
       head: mainHead(app, 'Active', latestRateText(m)),
       body: [
         catNav('active'),
+        h('a', { class: 'listrow', href: '#/venituri', style: 'grid-template-columns:minmax(0,1fr) 20px;background:var(--card, #fff);border-radius:12px;margin:0 16px' },
+          h('span', { class: 'nm' }, h('b', {}, 'Venituri și cheltuieli'), h('span', { class: 'xs muted' }, 'pagina lunară de pe 15: soldurile, veniturile, ce s-a cheltuit')), h('span', {}, '›')),
         h('section', { class: 'panel' },
           h('span', { class: 'up' }, 'Structura averii · ' + who),
           h('div', { class: 'split', style: 'height:12px' }, ...segs.filter((x) => x.ron > 0).map((x) => h('div', { style: `width:${(x.ron * 100) / segTotal}%;background:${SEG_COLOR[x.key]}` }))),

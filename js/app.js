@@ -16,7 +16,7 @@ export function createApp({ files, email }) {
     email, spaces, space: spaces[0], today: todayIso,
     canEdit: (s = app.space) => !!(files[s] && files[s].canEdit),
     async model(s = app.space) {
-      if (!cache[s]) cache[s] = await loadModel(files[s].id);
+      if (!cache[s]) cache[s] = await loadModel(files[s].id, s);
       return cache[s];
     },
     // Edits are void + append, so the model is simply reloaded after any write.

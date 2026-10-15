@@ -11,7 +11,8 @@ let date = null;
 let focus = null; // { ids, title }: opened from Active for one category / account; null = every account
 
 // From Active: the same form, narrowed to these accounts.
-export function startSolduri(ids, title) { focus = { ids, title }; entered = {}; date = null; }
+// ids null = every account (the monthly page); `onDate` pre-sets the date of the balances.
+export function startSolduri(ids, title, onDate = null) { focus = { ids, title }; entered = {}; date = onDate; }
 
 // "Actualizează toate soldurile": one form with every account, prefilled with its last balance.
 export async function solduriView(app) {
@@ -21,7 +22,7 @@ export async function solduriView(app) {
     if (!date) date = today;
     const space = app.space;
     const err = h('p', { class: 'err sm', style: 'margin:0' });
-    const accounts = KINDS.flatMap(([kind]) => m.accounts.filter((a) => !a.void && a.kind === kind && a.status !== 'closed' && (!focus || focus.ids.includes(a.id))));
+    const accounts = KINDS.flatMap(([kind]) => m.accounts.filter((a) => !a.void && a.kind === kind && a.status !== 'closed' && (!focus || !focus.ids || focus.ids.includes(a.id))));
 
     const sections = KINDS.map(([kind, label]) => {
       const list = accounts.filter((a) => a.kind === kind);

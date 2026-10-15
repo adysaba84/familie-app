@@ -7,7 +7,7 @@ import { SEED } from '../js/seed.js';
 // of cells, header first, exactly as the app reads them from Sheets). Private data is read from the Sheets
 // connector by hand and is never stored in this repo.
 const TODAY = new URLSearchParams(location.search).get('today') || new Date().toISOString().slice(0, 10);
-const empty = () => ({ accounts: [], broker_flows: [], broker_values: [], deposits: [], physical_items: [], physical_values: [], balances: [], wallet_balances: [], rates: [], settings: [], notify: [], notifications_log: [], audit: [] });
+const empty = () => ({ accounts: [], broker_flows: [], broker_values: [], deposits: [], physical_items: [], physical_values: [], balances: [], wallet_balances: [], cash_periods: [], cash_items: [], rates: [], settings: [], notify: [], notifications_log: [], audit: [] });
 const models = { parents: empty(), iza: empty() };
 let seq = 0;
 const stamp = (r) => ({ id: 'id' + ++seq, created_by: 'dev', created_at: '2026-01-01T00:00:00Z', void: false, void_reason: '', ...r });

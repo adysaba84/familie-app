@@ -89,8 +89,11 @@ export function snapshotRows(model, asOf, { all = false } = {}) {
   }).filter((r) => all || r.used);
 }
 
-export function situation(model, asOf) {
+// `rateDate`: convert at the rates of that date instead of asOf (so two dates can be compared at ONE rate: the exchange-rate
+// move on unchanged euro / dollar amounts is then not mistaken for growth).
+export function situation(model, asOf, { rateDate } = {}) {
   const rates = model.rates;
+  const rd = rateDate || asOf;
   const disponibil = emptyLayer(LAYERS.disponibil);
   const pensii = emptyLayer(LAYERS.pensii);
   const indisponibil = emptyLayer(LAYERS.indisponibil);
@@ -107,13 +110,13 @@ export function situation(model, asOf) {
     const a = accounts.get(b.account_id);
     if (!a || a.status === 'closed') continue;
     const ccy = a.currency_default;
-    const ron = toRon(b.balance_minor, ccy, rates, asOf);
+    const ron = toRon(b.balance_minor, ccy, rates, rd);
     const it = { label: a.name, sub: a.owner, native: b.balance_minor, currency: ccy, date: b.date, accountId: a.id };
     if (a.kind === 'savings') { put(disponibil, 'economii', ron, it); addNative(ccy, b.balance_minor); }
     else if (a.kind === 'insurance') { put(disponibil, 'asigurari', ron, it); addNative(ccy, b.balance_minor); }
     else if (a.kind === 'card') {
       const limit = cardLimit(model, a.id);
-      if (limit != null) { const used = b.balance_minor - limit; put(disponibil, 'carduri', toRon(used, ccy, rates, asOf), { ...it, native: used }); addNative(ccy, used); }
+      if (limit != null) { const used = b.balance_minor - limit; put(disponibil, 'carduri', toRon(used, ccy, rates, rd), { ...it, native: used }); addNative(ccy, used); }
     } else if (a.kind === 'pension') put(pensii, isSellablePension(a) ? 'gent' : 'piloni', ron, it);
     else if (a.kind === 'loan') put(indisponibil, 'imprumuturi', ron, it);
     else if (['current', 'wallet', 'voucher'].includes(a.kind)) { put(disponibil, 'conturi', ron, it); addNative(ccy, b.balance_minor); }
@@ -122,7 +125,7 @@ export function situation(model, asOf) {
   for (const d of model.deposits) {
     if (!depositIncluded(d, asOf)) continue;
     const acc = accounts.get(d.account_id);
-    put(disponibil, 'depozite', toRon(d.principal_minor, d.currency, rates, asOf), { label: acc ? `${acc.institution} · ${acc.owner}` : 'Depozit',
+    put(disponibil, 'depozite', toRon(d.principal_minor, d.currency, rates, rd), { label: acc ? `${acc.institution} · ${acc.owner}` : 'Depozit',
       sub: `${(d.rate_bp / 100).toFixed(2).replace('.', ',')}%`, native: d.principal_minor, currency: d.currency, date: d.maturity_date, depositId: d.id, overdue: d.status === 'active' && d.maturity_date < asOf });
     addNative(d.currency, d.principal_minor);
   }
@@ -137,19 +140,19 @@ export function situation(model, asOf) {
     const v = pv.get(it.id);
     const row = { label: it.description || it.kind, sub: '', currency: it.currency, date: v ? v.date : it.purchase_date, itemId: it.id };
     if (it.kind === 'gold') { const n = v ? v.value_minor : it.purchase_value_minor || 0; put(pensii, 'aur', n, { ...row, native: n, currency: 'RON' }); }
-    else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; put(disponibil, 'seif', toRon(n, it.currency, rates, asOf), { ...row, native: n }); addNative(it.currency, n); }
-    else if (PROPERTY_KINDS.includes(it.kind)) { const n = propertyValue(model, it, asOf); put(indisponibil, 'imobile', toRon(n, it.currency, rates, asOf), { ...row, native: n }); }
+    else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; put(disponibil, 'seif', toRon(n, it.currency, rates, rd), { ...row, native: n }); addNative(it.currency, n); }
+    else if (PROPERTY_KINDS.includes(it.kind)) { const n = propertyValue(model, it, asOf); put(indisponibil, 'imobile', toRon(n, it.currency, rates, rd), { ...row, native: n }); }
   }
 
   // one entry per (broker account, currency): the same granularity brokerSummary sums, so the lines add up exactly
   for (const g of brokerGroups(model, asOf, 'platform')) {
-    put(pensii, 'bursa', toRon(g.value, g.currency, rates, asOf), { label: g.account ? `${g.account.institution} · ${g.account.owner}` : 'Broker', sub: '', native: g.value, currency: g.currency, date: g.valueDate, accountId: g.account ? g.account.id : null });
+    put(pensii, 'bursa', toRon(g.value, g.currency, rates, rd), { label: g.account ? `${g.account.institution} · ${g.account.owner}` : 'Broker', sub: '', native: g.value, currency: g.currency, date: g.valueDate, accountId: g.account ? g.account.id : null });
   }
 
   for (const s of snapshotRows(model, asOf)) {
     const [which, key] = SNAP_LAYER[s.group];
     const layer = which === 'disponibil' ? disponibil : pensii;
-    put(layer, key, toRon(s.amount_minor, s.currency, rates, asOf), { label: s.label, sub: 'total din Excel', native: s.amount_minor, currency: s.currency, date: s.date });
+    put(layer, key, toRon(s.amount_minor, s.currency, rates, rd), { label: s.label, sub: 'total din Excel', native: s.amount_minor, currency: s.currency, date: s.date });
     if (which === 'disponibil') addNative(s.currency, s.amount_minor);
   }
 

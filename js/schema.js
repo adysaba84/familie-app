@@ -18,6 +18,11 @@ export const TABS = {
   wallet_balances: withCommon(['id', 'account_id', 'date', 'balance_minor', 'rate_bp']),
   // Excel totals for dates before the detailed records exist (e.g. all deposits at 31 dec): group = conturi | depozite | seif | aur | bursa
   snapshots: withCommon(['id', 'date', 'group', 'label', 'currency', 'amount_minor', 'note']),
+  // Monthly "income and expenses" page (parents' file only): one row per saved page (date = end of the period, prev_date =
+  // its start) and its items. kind = income | invested; key = salar_ady ... nn_iza ... altele; amount_minor = lei, signed
+  // (an investment can be negative: withdrawals, sales, redemptions); label only for free-text rows (alte_surse, altele).
+  cash_periods: withCommon(['id', 'date', 'prev_date', 'note']),
+  cash_items: withCommon(['id', 'period_id', 'kind', 'key', 'amount_minor', 'label']),
   rates: ['date', 'EUR', 'USD', 'XAU', 'source'],
   // key/value settings (private plan parameters live here, never in the public code); latest non-void row per key wins
   settings: withCommon(['key', 'value']),
@@ -25,6 +30,9 @@ export const TABS = {
   notifications_log: ['key', 'sent_at'],
   audit: ['ts', 'user', 'action', 'tab', 'row_id', 'summary'],
 };
+
+// tabs that exist only in the parents' file (never created in Iza's)
+export const PARENTS_ONLY_TABS = ['cash_periods', 'cash_items'];
 
 export const FILE_NAMES = { parents: 'FIN · Părinți', iza: 'FIN · Iza' };
 

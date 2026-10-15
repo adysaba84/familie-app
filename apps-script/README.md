@@ -47,7 +47,7 @@ evenimentelor, fără acces la Google, testată în `tests/calendar.test.js`), p
 |---|---|---|
 | `dailyRates` | L–V, 10:30 și 13:30 | Citește `bnr.ro/nbrfxrates.xml`, adaugă EUR, USD, XAU (×10 000) în `rates`, în ambele fișiere, dacă data nu există deja cu sursa `BNR`. |
 | `dailyCalendarSync` | zilnic 08:00 | Aduce calendarul în acord cu foaia `deposits` (vezi mai jos). Poate rula de câte ori vrei: nu face dubluri. |
-| serie „Actualizează soldurile” | pe 15 ale lunii, 09:00 | Eveniment recurent cu notificare la oră, în calendarul lui Ady, cu **Carmen și Iza invitate** (din `OWNER_EMAILS`); descriere: Active → (conturile cu sold vechi apar marcate) → +. Creat o singură dată de `installTriggers`. |
+| serie „Actualizează soldurile” | pe 15 ale lunii, 09:00 | Eveniment recurent cu notificare la oră, în calendarul lui Ady, cu **Carmen și Iza invitate** (din `OWNER_EMAILS`); descriere: Active → (conturile cu sold vechi apar marcate) → +, apoi Active → Venituri și cheltuieli. Creat o singură dată de `installTriggers`. |
 | `syncBalanceGuests` | manual | Adaugă la seria existentă doar invitații care lipsesc (nu retrimite celor deja invitați). |
 | `weeklyBackup` | duminică | Copii ale ambelor fișiere în Drive → `Finanțe/backup`, păstrează ultimele 12 din fiecare. |
 | `testCalendar` | manual | Eveniment de test peste ~2 minute. |
@@ -86,6 +86,8 @@ Dacă mută cineva un eveniment de mână în Calendar, scriptul îl readuce pe 
 - Testul sigur: rulezi `testCalendar` și ai notificarea pe telefon peste ~2 minute.
 
 ## Seria de solduri: invitații Carmen și Iza
+
+- Descrierea evenimentului (cu „Active → Venituri și cheltuieli”) se pune doar când seria e **creată**. La o serie deja existentă, schimbă descrierea de mână în Calendar (sau șterge seria și rulează din nou `installTriggers`).
 
 - Seria e creată în calendarul lui Ady (organizator); `installTriggers` adaugă ca invitați adresele Carmen și Iza din
   `OWNER_EMAILS`. Invitația se trimite **doar când o adresă e adăugată prima dată**: la reinstalare sau actualizare, cine
