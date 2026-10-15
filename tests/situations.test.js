@@ -1,5 +1,5 @@
 import { test, eq, ok } from './harness.js';
-import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS, eurGrowth, wealthStructure, wealthDates, wealthSeries, seriesStartsBeforeDeposits } from '../js/situations.js';
+import { situation, combine, comparisonDates, historyStart, snapshotRows, LAYERS, eurGrowth, wealthStructure, wealthDates, wealthSeries, seriesStartsBeforeDeposits, categoryGroups } from '../js/situations.js';
 
 // Invented family (round numbers): EUR = 5 RON, USD = 4 RON.
 const rates = [{ date: '2026-01-01', EUR: 50000, USD: 40000 }];
@@ -161,4 +161,31 @@ test('wealthSeries / seriesStartsBeforeDeposits: values per date, warning when t
   eq(seriesStartsBeforeDeposits(model, [{ date: '2025-12-31' }]), true); // deposits in the invented model start 2026-01-01
   eq(seriesStartsBeforeDeposits(model, [{ date: '2026-01-01' }]), false);
   eq(seriesStartsBeforeDeposits({ deposits: [] }, [{ date: '2025-12-31' }]), false);
+});
+
+test('items: every line is exactly the sum of what it is made of (the expandable lists use the same numbers)', () => {
+  const s = situation({ ...model, broker_flows: [], snapshots: [] }, '2026-10-14');
+  for (const layer of [s.disponibil, s.pensii, s.indisponibil]) {
+    for (const l of layer.lines) eq((s.items[l.key] || []).reduce((t, i) => t + i.ron, 0), l.ron, l.key);
+  }
+  ok((s.items.depozite || []).length === 2, 'two live deposits listed, the void one left out');
+  eq(s.items.carduri[0].native, -20000); // native spent on the card, not the balance
+});
+test('categoryGroups: subtotals and percentages share one total; groups follow the screen', () => {
+  const s = situation(model, '2026-10-14');
+  const { total, groups } = categoryGroups(s);
+  eq(total, s.disponibil.total + s.pensii.total + s.indisponibil.total);
+  eq(groups.map((g) => g.key), ['disponibil', 'pensii', 'indisponibil']);
+  const pens = groups[1];
+  eq(pens.ron, s.pensii.total);
+  eq(pens.blocks.map((b) => b.key), ['vanzare', 'pensie']);
+  eq(pens.blocks[0].ron + pens.blocks[1].ron, pens.ron);
+  eq(pens.blocks[1].lines[0].groupRon, pens.blocks[1].ron); // % din grupa is against its own block
+  eq(groups[0].blocks[0].lines.every((l) => l.groupRon === s.disponibil.total), true);
+  eq(groups.reduce((t, g) => t + g.blocks.reduce((u, b) => u + b.ron, 0), 0), total);
+});
+test('categoryGroups: empty lines are left out (a space without pensions shows no Pensii lines)', () => {
+  const s = situation({ ...model, accounts: model.accounts.filter((x) => !['pen', 'gent'].includes(x.id)), broker_values: [], physical_values: model.physical_values.filter((v) => v.item_id !== 'g') }, '2026-10-14');
+  const keys = categoryGroups(s).groups.flatMap((g) => g.blocks.flatMap((b) => b.lines.map((l) => l.key)));
+  ok(!keys.includes('piloni') && !keys.includes('gent') && !keys.includes('bursa'));
 });

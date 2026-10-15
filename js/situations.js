@@ -1,4 +1,4 @@
-import { toRon, fromRon, depositIncluded, latestBalances, brokerSummary, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
+import { toRon, fromRon, depositIncluded, latestBalances, brokerGroups, monthEnd, addMonths, PROPERTY_KINDS, propertyValue } from './calc.js';
 
 // "Situații": the family position in layers. PURE (no DOM, no network).
 //   DISPONIBIL   = cash: current accounts, wallets, vouchers, savings, deposits, cash in the safe, credit cards counted
@@ -98,6 +98,10 @@ export function situation(model, asOf) {
   const native = { RON: 0, EUR: 0, USD: 0 };
   const addNative = (ccy, minor) => { native[ccy] = (native[ccy] || 0) + minor; };
   const accounts = new Map(model.accounts.map((a) => [a.id, a]));
+  // `items`: what each line is made of (one entry per account / deposit / item, native amount + lei), collected while
+  // the line is summed, so the expandable lists on the Active screen can never disagree with the totals.
+  const items = {};
+  const put = (layer, key, ron, item) => { bump(layer, key, ron); (items[key] = items[key] || []).push({ ...item, ron }); };
 
   // balances: one latest balance per account, put in its layer by the account kind
   for (const b of latestBalances(model, asOf).values()) {
@@ -105,19 +109,22 @@ export function situation(model, asOf) {
     if (!a || a.status === 'closed') continue;
     const ccy = a.currency_default;
     const ron = toRon(b.balance_minor, ccy, rates, asOf);
-    if (a.kind === 'savings') { bump(disponibil, 'economii', ron); addNative(ccy, b.balance_minor); }
-    else if (a.kind === 'insurance') { bump(disponibil, 'asigurari', ron); addNative(ccy, b.balance_minor); }
+    const it = { label: a.name, sub: a.owner, native: b.balance_minor, currency: ccy, date: b.date };
+    if (a.kind === 'savings') { put(disponibil, 'economii', ron, it); addNative(ccy, b.balance_minor); }
+    else if (a.kind === 'insurance') { put(disponibil, 'asigurari', ron, it); addNative(ccy, b.balance_minor); }
     else if (a.kind === 'card') {
       const limit = cardLimit(model, a.id);
-      if (limit != null) { const used = b.balance_minor - limit; bump(disponibil, 'carduri', toRon(used, ccy, rates, asOf)); addNative(ccy, used); }
-    } else if (a.kind === 'pension') bump(pensii, isSellablePension(a) ? 'gent' : 'piloni', ron);
-    else if (a.kind === 'loan') bump(indisponibil, 'imprumuturi', ron);
-    else if (['current', 'wallet', 'voucher'].includes(a.kind)) { bump(disponibil, 'conturi', ron); addNative(ccy, b.balance_minor); }
+      if (limit != null) { const used = b.balance_minor - limit; put(disponibil, 'carduri', toRon(used, ccy, rates, asOf), { ...it, native: used }); addNative(ccy, used); }
+    } else if (a.kind === 'pension') put(pensii, isSellablePension(a) ? 'gent' : 'piloni', ron, it);
+    else if (a.kind === 'loan') put(indisponibil, 'imprumuturi', ron, it);
+    else if (['current', 'wallet', 'voucher'].includes(a.kind)) { put(disponibil, 'conturi', ron, it); addNative(ccy, b.balance_minor); }
   }
 
   for (const d of model.deposits) {
     if (!depositIncluded(d, asOf)) continue;
-    bump(disponibil, 'depozite', toRon(d.principal_minor, d.currency, rates, asOf));
+    const acc = accounts.get(d.account_id);
+    put(disponibil, 'depozite', toRon(d.principal_minor, d.currency, rates, asOf), { label: acc ? `${acc.institution} · ${acc.owner}` : 'Depozit',
+      sub: `${(d.rate_bp / 100).toFixed(2).replace('.', ',')}%`, native: d.principal_minor, currency: d.currency, date: d.maturity_date, overdue: d.status === 'active' && d.maturity_date < asOf });
     addNative(d.currency, d.principal_minor);
   }
 
@@ -129,21 +136,25 @@ export function situation(model, asOf) {
   for (const it of model.physical_items) {
     if (!live(it) || (it.purchase_date > asOf && !PROPERTY_KINDS.includes(it.kind))) continue; // property counts at every date
     const v = pv.get(it.id);
-    if (it.kind === 'gold') bump(pensii, 'aur', v ? v.value_minor : it.purchase_value_minor || 0);
-    else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; bump(disponibil, 'seif', toRon(n, it.currency, rates, asOf)); addNative(it.currency, n); }
-    else if (PROPERTY_KINDS.includes(it.kind)) bump(indisponibil, 'imobile', toRon(propertyValue(model, it, asOf), it.currency, rates, asOf));
+    const row = { label: it.description || it.kind, sub: '', currency: it.currency, date: v ? v.date : it.purchase_date };
+    if (it.kind === 'gold') { const n = v ? v.value_minor : it.purchase_value_minor || 0; put(pensii, 'aur', n, { ...row, native: n, currency: 'RON' }); }
+    else if (it.kind === 'cash') { const n = v ? v.value_minor : 0; put(disponibil, 'seif', toRon(n, it.currency, rates, asOf), { ...row, native: n }); addNative(it.currency, n); }
+    else if (PROPERTY_KINDS.includes(it.kind)) { const n = propertyValue(model, it, asOf); put(indisponibil, 'imobile', toRon(n, it.currency, rates, asOf), { ...row, native: n }); }
   }
 
-  bump(pensii, 'bursa', brokerSummary(model, asOf).valueRon);
+  // one entry per (broker account, currency): the same granularity brokerSummary sums, so the lines add up exactly
+  for (const g of brokerGroups(model, asOf, 'platform')) {
+    put(pensii, 'bursa', toRon(g.value, g.currency, rates, asOf), { label: g.account ? `${g.account.institution} · ${g.account.owner}` : 'Broker', sub: '', native: g.value, currency: g.currency, date: g.valueDate });
+  }
 
   for (const s of snapshotRows(model, asOf)) {
     const [which, key] = SNAP_LAYER[s.group];
     const layer = which === 'disponibil' ? disponibil : pensii;
-    bump(layer, key, toRon(s.amount_minor, s.currency, rates, asOf));
+    put(layer, key, toRon(s.amount_minor, s.currency, rates, asOf), { label: s.label, sub: 'total din Excel', native: s.amount_minor, currency: s.currency, date: s.date });
     if (which === 'disponibil') addNative(s.currency, s.amount_minor);
   }
 
-  return { asOf, disponibil: { ...disponibil, native }, pensii, indisponibil, ...wealths(disponibil, pensii, indisponibil) };
+  return { asOf, items, disponibil: { ...disponibil, native }, pensii, indisponibil, ...wealths(disponibil, pensii, indisponibil) };
 }
 
 // Several spaces (e.g. parents + Iza) added together, line by line.
@@ -158,7 +169,9 @@ export function combine(list) {
   for (const x of list) for (const [c, v] of Object.entries(x.disponibil.native)) native[c] = (native[c] || 0) + v;
   const disponibil = { ...merge((x) => x.disponibil), native };
   const pensii = merge((x) => x.pensii), indisponibil = merge((x) => x.indisponibil);
-  return { asOf: list[0].asOf, disponibil, pensii, indisponibil, ...wealths(disponibil, pensii, indisponibil) };
+  const items = {};
+  for (const x of list) for (const [k, v] of Object.entries(x.items || {})) items[k] = (items[k] || []).concat(v);
+  return { asOf: list[0].asOf, items, disponibil, pensii, indisponibil, ...wealths(disponibil, pensii, indisponibil) };
 }
 
 // The comparison dates: the end of last month and the end of last year (start of this year).
@@ -211,4 +224,24 @@ export const wealthSeries = (model, today) => wealthDates(model, today).map((dat
 export function seriesStartsBeforeDeposits(model, series) {
   const starts = (model.deposits || []).filter((d) => !d.void && d.start_date).map((d) => d.start_date).sort();
   return !!series.length && !!starts.length && series[0].date < starts[0];
+}
+
+// The Active list: every line of situation() grouped as the screen shows it, each with its subtotal. `total` is the sum of
+// ALL lines (disponibil + pensii + indisponibil, pillars and loans included): the same total as the structure bar, so the
+// "% din total" of every row and subtotal shares one base. `groupRon` is the subtotal of the row's own group.
+// Groups: Disponibil / Pensii cu vanzare / Pensii pana la pensie / Indisponibil, then the two Pensii sections are
+// wrapped in a "Pensii" block that has its own total.
+export function categoryGroups(sit) {
+  const total = sit.disponibil.total + sit.pensii.total + sit.indisponibil.total;
+  const mk = (key, title, lines) => {
+    const sub = lines.reduce((t, l) => t + l.ron, 0);
+    return { key, title, ron: sub, lines: lines.filter((l) => l.ron !== 0 || (sit.items[l.key] || []).length).map((l) => ({ ...l, groupRon: sub, items: sit.items[l.key] || [] })) };
+  };
+  const pl = (section) => sit.pensii.lines.filter((l) => l.section === section);
+  const groups = [
+    { key: 'disponibil', blocks: [mk('disponibil', 'Disponibil', sit.disponibil.lines)] },
+    { key: 'pensii', title: 'Pensii', ron: sit.pensii.total, blocks: [mk('vanzare', PENSII_SECTIONS.vanzare, pl('vanzare')), mk('pensie', PENSII_SECTIONS.pensie, pl('pensie'))] },
+    { key: 'indisponibil', blocks: [mk('indisponibil', 'Indisponibil', sit.indisponibil.lines)] },
+  ];
+  return { total, groups: groups.filter((g) => g.blocks.some((b) => b.lines.length)) };
 }
