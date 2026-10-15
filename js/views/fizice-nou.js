@@ -1,9 +1,13 @@
 import { h } from '../dom.js';
 import { parseAmount } from '../money.js';
 import { closeHead, frame, guarded, loading } from '../ui.js';
+import { finish } from '../return.js';
 
 let form = null;
 const fresh = (app) => ({ kind: 'gold', sub: 'property', description: '', quantity: '1', amount: '', currency: 'EUR', date: app.today() });
+
+// From Active: the same form with the kind pre-selected ('gold' | 'cash' | 'property').
+export function startNew(app, kind) { form = { ...fresh(app), kind }; }
 
 // "+ Alt obiect": a gold item (purchase value in lei) or a cash currency kept in the safe.
 export async function fiziceNouView(app) {
@@ -35,7 +39,7 @@ export async function fiziceNouView(app) {
         // cash: the amount is its first value; gold: the purchase price is the first point of the history
         await app.add(space, 'physical_values', { item_id: item.id, date: form.date, value_minor: v }, 'valoare inițială');
         form = null;
-        app.go('/fizice');
+        finish(app, '/fizice');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva.'; }
     };
 

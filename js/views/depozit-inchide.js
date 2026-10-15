@@ -2,6 +2,7 @@ import { h } from '../dom.js';
 import { addMonths, closeInterestEstimate, destinationAccounts, planClose, planRollover, accountBalance, daysBetween } from '../calc.js';
 import { parseAmount, parsePercent, formatMinor } from '../money.js';
 import { closeHead, frame, guarded, loading, fmtNative, fullDate } from '../ui.js';
+import { finish } from '../return.js';
 
 const TERMS = [1, 3, 6, 12, 24, 36];
 let st = null; // { id, space, mode: 'matured' | 'broken' | 'extend', date, interest, to, amount, rate, term, cap }
@@ -104,7 +105,7 @@ export async function depozitInchideView(app) {
           await app.add(st.space, 'balances', plan.balance, `din depozit închis ${st.date}`);
         }
         st = null;
-        app.go('/depozite');
+        finish(app, '/depozite');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva complet. Verifică în foaie înainte să repeți.'; }
     };
 

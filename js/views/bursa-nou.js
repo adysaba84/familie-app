@@ -4,12 +4,16 @@ import { parseAmount } from '../money.js';
 import { SPACE_LABEL } from '../schema.js';
 import { closeHead, frame, guarded, loading, fmtNative, shortDate } from '../ui.js';
 import { INSTRUMENT_LABEL } from './bursa.js';
+import { finish } from '../return.js';
 
 const INSTRUMENTS = ['stocks_etf', 'bonds', 'cash'];
 const CURRENCIES = ['RON', 'EUR', 'USD'];
 let form = null; // survives re-renders within the screen; reset on save
 
 const fresh = (app) => ({ space: app.space, accountId: null, instrument: 'stocks_etf', amount: '', currency: null, date: app.today(), direction: 'in', note: '' });
+
+// From Active: open the form on one broker account (or the first one).
+export function startNou(app, accountId) { form = { ...fresh(app), accountId: accountId || null }; }
 
 // "Bursă · introducere" (1/2): amount invested (deposit or withdrawal) on a platform.
 export async function bursaNouView(app) {
@@ -61,7 +65,7 @@ export async function bursaNouView(app) {
           amount_minor: minor, direction: form.direction, note: form.note,
         }, `${form.direction === 'in' ? 'depunere' : 'retragere'} ${acc.institution} ${form.currency}`);
         form = null;
-        app.go('/bursa');
+        finish(app, '/bursa');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva. Încearcă din nou.'; }
     };
 

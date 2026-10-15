@@ -3,6 +3,7 @@ import { addMonths, startFromMaturity, grossInterest, netOf, bfgByBankOwner, day
 import { parseAmount, parsePercent, formatMinor, formatWhole } from '../money.js';
 import { SPACE_LABEL } from '../schema.js';
 import { closeHead, frame, guarded, loading, fullDate } from '../ui.js';
+import { finish } from '../return.js';
 
 const TERMS = [1, 3, 6, 12, 24, 36];
 const CURRENCIES = ['RON', 'EUR', 'USD'];
@@ -96,7 +97,7 @@ export async function depozitNouView(app) {
           notify_days: form.email ? 3 : 0, status: 'active', note: '',
         }, `depozit ${account.institution} ${form.currency}`);
         form = null; editing = null;
-        app.go('/depozite');
+        finish(app, '/depozite');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva. Încearcă din nou.'; }
     };
 

@@ -3,9 +3,13 @@ import { goldItems, safeCash, propertyItems, totalsByCategory } from '../calc.js
 import { parseAmount, formatMinor } from '../money.js';
 import { sparkline } from '../charts.js';
 import { icon, frame, backHead, guarded, loading, lei, fmtNative, shortDate, pctText, headTotal, eurApprox } from '../ui.js';
+import { finish } from '../return.js';
 
 let valueFor = null; // gold item id whose "valoare de azi" form is open
 let editCash = null; // cash item id being edited
+
+// From Active: open the inline value form of one item (gold has its own, cash and property share the other).
+export function startValue(itemId, gold) { valueFor = gold ? itemId : null; editCash = gold ? null : itemId; }
 const CCY_COLOR = { EUR: '#4C78A8', USD: '#A9CFC2', RON: '#1F6F5C' };
 const CCY_NOTE = { RON: 'lei pentru zile fără bănci' };
 
@@ -33,7 +37,7 @@ export async function fiziceView(app) {
         const old = m.physical_values.find((x) => !x.void && x.item_id === itemId && x.date === dateIn.value);
         if (old) await app.void(space, 'physical_values', old, 'corectat');
         await app.add(space, 'physical_values', { item_id: itemId, date: dateIn.value, value_minor: v }, 'valoare obiect ' + dateIn.value);
-        valueFor = null; editCash = null; app.rerender();
+        valueFor = null; editCash = null; finish(app, null);
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva.'; }
     };
     const valueForm = (itemId, label, placeholder) => {

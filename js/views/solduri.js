@@ -2,11 +2,16 @@ import { h } from '../dom.js';
 import { accountBalance, STALE_DAYS } from '../calc.js';
 import { parseAmount, formatMinor } from '../money.js';
 import { closeHead, frame, guarded, loading, shortDate } from '../ui.js';
+import { finish } from '../return.js';
 
 const KINDS = [['current', 'Conturi curente'], ['wallet', 'Portofele'], ['voucher', 'Tichete de masă'], ['savings', 'Economii'],
   ['insurance', 'Asigurări'], ['pension', 'Pensii'], ['loan', 'Împrumuturi date'], ['card', 'Carduri de credit · credit disponibil']];
 let entered = {};
 let date = null;
+let focus = null; // { ids, title }: opened from Active for one category / account; null = every account
+
+// From Active: the same form, narrowed to these accounts.
+export function startSolduri(ids, title) { focus = { ids, title }; entered = {}; date = null; }
 
 // "Actualizează toate soldurile": one form with every account, prefilled with its last balance.
 export async function solduriView(app) {
@@ -16,7 +21,7 @@ export async function solduriView(app) {
     if (!date) date = today;
     const space = app.space;
     const err = h('p', { class: 'err sm', style: 'margin:0' });
-    const accounts = KINDS.flatMap(([kind]) => m.accounts.filter((a) => !a.void && a.kind === kind && a.status !== 'closed'));
+    const accounts = KINDS.flatMap(([kind]) => m.accounts.filter((a) => !a.void && a.kind === kind && a.status !== 'closed' && (!focus || focus.ids.includes(a.id))));
 
     const sections = KINDS.map(([kind, label]) => {
       const list = accounts.filter((a) => a.kind === kind);
@@ -55,13 +60,13 @@ export async function solduriView(app) {
           const b = accountBalance(m, a.id, date);
           return { account_id: a.id, date, balance_minor: v, rate_bp: b.rateBp == null ? '' : b.rateBp };
         }), `solduri ${date} (${rows.length})`);
-        entered = {}; date = null;
-        app.go('/conturi');
+        entered = {}; date = null; focus = null;
+        finish(app, '/conturi');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva. Încearcă din nou.'; }
     };
 
     frame(app, {
-      tab: 'active', head: closeHead('#/conturi', 'Actualizează soldurile'),
+      tab: 'active', head: closeHead('#/conturi', focus ? focus.title : 'Actualizează soldurile'),
       body: [
         h('label', { class: 'f', style: 'margin:14px 16px 0;font-size:12px;font-weight:600;color:var(--muted)' }, 'La data',
           h('input', { class: 'input', type: 'date', value: date, onchange: (e) => { date = e.target.value; app.rerender(); } })),
@@ -72,4 +77,4 @@ export async function solduriView(app) {
   });
 }
 
-window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#/conturi/solduri')) { entered = {}; date = null; } });
+window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#/conturi/solduri')) { entered = {}; date = null; focus = null; } });

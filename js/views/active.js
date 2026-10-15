@@ -1,8 +1,16 @@
 import { h } from '../dom.js';
 import { currencyBreakdown, staleAccounts, daysBetween, STALE_DAYS } from '../calc.js';
-import { situation, comparisonDates, wealthStructure, wealthSeries, seriesStartsBeforeDeposits, eurGrowth, categoryGroups } from '../situations.js';
+import { situation, comparisonDates, wealthStructure, wealthSeries, seriesStartsBeforeDeposits, eurGrowth, categoryGroups, isSellablePension } from '../situations.js';
 import { formatWhole } from '../money.js';
 import { wealthLine } from '../charts.js';
+import { setReturn, openCats } from '../return.js';
+import { startSolduri } from './solduri.js';
+import { startEdit } from './depozit-nou.js';
+import { startClose } from './depozit-inchide.js';
+import { startNou } from './bursa-nou.js';
+import { startValoare } from './bursa-valoare.js';
+import { startNew } from './fizice-nou.js';
+import { startValue } from './fizice.js';
 import { frame, mainHead, catNav, guarded, loading, lei, signed, latestRateText, fmtNative, fullDate, shortDate, eurOf } from '../ui.js';
 
 const SEG_COLOR = { disponibil: '#1F6F5C', vanzare: '#5FA48F', pensie: '#A9CFC2', indisponibil: '#C9A24A' };
@@ -17,7 +25,7 @@ const OPEN_LINK = { conturi: '#/conturi', economii: '#/conturi', depozite: '#/de
 const NOUN = { conturi: ['cont', 'conturi'], economii: ['cont', 'conturi'], carduri: ['card', 'carduri'], bursa: ['cont', 'conturi'], seif: ['sumă', 'sume'], aur: ['piesă', 'piese'],
   gent: ['poliță', 'polițe'], piloni: ['pilon', 'piloni'], imobile: ['bun', 'bunuri'], imprumuturi: ['datornic', 'datornici'], asigurari: ['cont', 'conturi'] };
 const LINE_COLOR = { disponibil: '#1F6F5C', vanzare: '#5FA48F', pensie: '#A9CFC2', indisponibil: '#C9A24A' };
-const openCats = new Set(); // category keys expanded in place
+const BAL_KINDS = { conturi: ['current', 'wallet', 'voucher'], economii: ['savings'], carduri: ['card'], asigurari: ['insurance'], imprumuturi: ['loan'] };
 
 export async function activeView(app) {
   loading();
@@ -58,6 +66,46 @@ export async function activeView(app) {
       h('span', { style: 'text-align:right;white-space:nowrap' }, h('b', { class: 'mono', style: 'font-size:14px' }, lei(ron)),
         h('small', { class: 'xs muted mono', style: 'display:block' }, `${eurTxt(ron)} · ${pc(ron, listTotal)}%`)));
 
+    // + and the per-item buttons open the EXISTING forms (no copies); saving returns here with the category open
+    const canEdit = app.canEdit(app.space);
+    const space = app.space;
+    const go = (routes, key, prepare, path) => { setReturn(routes, key); prepare(); app.go(path); };
+    const balanceIds = (key) => m.accounts.filter((a) => !a.void && a.status !== 'closed'
+      && (BAL_KINDS[key] ? BAL_KINDS[key].includes(a.kind) : a.kind === 'pension' && (key === 'gent') === isSellablePension(a))).map((a) => a.id);
+    const soldNou = (key, ids, title) => go(['/conturi/solduri'], key, () => startSolduri(ids, title), '/conturi/solduri');
+    const plusFor = (line) => {
+      const k = line.key;
+      if (BAL_KINDS[k] || k === 'gent' || k === 'piloni') return () => soldNou(k, balanceIds(k), line.label);
+      if (k === 'depozite') return () => go(['/depozite/nou'], k, () => {}, '/depozite/nou');
+      if (k === 'bursa') return () => go(['/bursa/valoare', '/bursa/nou'], k, () => startValoare(app, null), '/bursa/valoare');
+      if (k === 'seif') return () => go(['/fizice/nou'], k, () => startNew(app, 'cash'), '/fizice/nou');
+      if (k === 'aur') return () => go(['/fizice/nou'], k, () => startNew(app, 'gold'), '/fizice/nou');
+      if (k === 'imobile') return () => go(['/fizice/nou'], k, () => startNew(app, 'property'), '/fizice/nou');
+      return null;
+    };
+    const btn = (text, onclick) => h('button', { type: 'button', class: 'secondary', style: 'flex:0 1 auto;min-width:96px;min-height:40px;padding:0 14px;font-size:12px;white-space:nowrap', onclick }, text);
+    const itemActions = (line, it) => {
+      if (!canEdit) return null;
+      const k = line.key;
+      let buttons = [];
+      if (it.depositId) {
+        const d = m.deposits.find((x) => x.id === it.depositId);
+        if (!d) return null;
+        const due = daysBetween(today, d.maturity_date) <= 0;
+        const closing = (mode) => go(['/depozite/inchide'], k, () => startClose(d, space, mode, today), '/depozite/inchide');
+        buttons = [btn(due ? 'Închide' : 'Închide înainte', () => closing(due ? 'matured' : 'broken')), btn('Prelungește', () => closing('extend')),
+          btn('Modifică', () => go(['/depozite/nou'], k, () => startEdit(d), '/depozite/nou'))];
+      } else if (it.itemId) {
+        buttons = [btn('Valoare nouă', () => go(['/fizice'], k, () => startValue(it.itemId, k === 'aur'), '/fizice'))];
+      } else if (k === 'bursa' && it.accountId) {
+        buttons = [btn('Valoare cont', () => go(['/bursa/valoare', '/bursa/nou'], k, () => startValoare(app, it.accountId), '/bursa/valoare')),
+          btn('Depunere', () => go(['/bursa/valoare', '/bursa/nou'], k, () => startNou(app, it.accountId), '/bursa/nou'))];
+      } else if (it.accountId) {
+        buttons = [btn('Sold nou', () => soldNou(k, [it.accountId], it.label))];
+      }
+      return buttons.length ? h('div', { style: 'grid-column:1 / -1;display:flex;gap:6px;margin-top:4px' }, ...buttons) : null;
+    };
+
     const itemRow = (line, it) => {
       const foreign = it.currency !== 'RON';
       const old = it.date && ['conturi', 'economii', 'asigurari', 'carduri', 'gent', 'piloni', 'imprumuturi'].includes(line.key) && daysBetween(it.date, today) > STALE_DAYS;
@@ -67,25 +115,29 @@ export async function activeView(app) {
         h('span', { style: 'min-width:0;display:flex;flex-direction:column' }, h('span', { style: 'overflow-wrap:anywhere' }, it.label),
           sub ? h('span', { class: 'xs ' + (old || it.overdue ? 'neg' : 'muted'), style: 'overflow-wrap:anywhere' }, sub) : null),
         h('span', { style: 'text-align:right;white-space:nowrap' }, foreign ? h('b', { class: 'mono' }, fmtNative(it.native, it.currency, { unit: true })) : h('b', { class: 'mono' }, lei(it.ron)),
-          h('small', { class: 'xs muted mono', style: 'display:block' }, foreign ? `${lei(it.ron)} lei · ${eurTxt(it.ron)}` : eurTxt(it.ron))));
+          h('small', { class: 'xs muted mono', style: 'display:block' }, foreign ? `${lei(it.ron)} lei · ${eurTxt(it.ron)}` : eurTxt(it.ron))),
+        itemActions(line, it));
     };
 
     const catRow = (line, blockKey) => {
       const isOpen = openCats.has(line.key);
+      const plus = canEdit ? plusFor(line) : null;
       const n = line.items.length;
       const noun = NOUN[line.key];
       const sub = line.key === 'conturi' && stale ? `${stale} ${stale === 1 ? 'sold mai vechi' : 'solduri mai vechi'} de 30 zile`
         : line.key === 'depozite' ? depositsLabel(m.deposits.filter((d) => !d.void && d.status === 'active').length)
           : noun ? `${n} ${n === 1 ? noun[0] : noun[1]}` : '';
       const head = h('div', {
-        class: 'listrow', role: 'button', tabindex: '0', 'aria-expanded': String(isOpen), style: 'grid-template-columns:auto minmax(0,1fr) auto;cursor:pointer',
-        onclick: () => { if (isOpen) openCats.delete(line.key); else openCats.add(line.key); app.rerender(); },
+        class: 'listrow', role: 'button', tabindex: '0', 'aria-expanded': String(isOpen), style: 'grid-template-columns:auto minmax(0,1fr) auto auto;cursor:pointer',
+        onclick: (e) => { if (e.target.closest('button')) return; if (isOpen) openCats.delete(line.key); else openCats.add(line.key); app.rerender(); },
       },
       h('span', { class: 'sw', style: `background:${LINE_COLOR[blockKey]}` }),
       h('span', { class: 'nm', style: 'min-width:0' }, h('b', {}, line.label), h('span', { class: 'xs ' + (line.key === 'conturi' && stale ? 'neg' : 'muted') }, sub)),
       h('span', { class: 'amt', style: 'text-align:right;white-space:nowrap' }, lei(line.ron),
         h('small', { class: 'xs muted', style: 'display:block;font-family:var(--mono)' }, eurTxt(line.ron)),
-        h('small', { class: 'xs muted', style: 'display:block;font-family:var(--mono)' }, `${pc(line.ron, listTotal)}% · ${pc(line.ron, line.groupRon)}%`)));
+        h('small', { class: 'xs muted', style: 'display:block;font-family:var(--mono)' }, `${pc(line.ron, listTotal)}% · ${pc(line.ron, line.groupRon)}%`)),
+      plus ? h('button', { type: 'button', 'aria-label': `Adaugă sau actualizează: ${line.label}`, onclick: plus,
+        style: 'width:44px;height:44px;min-height:44px;padding:0;border-radius:22px;font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center' }, '+') : null);
       if (!isOpen) return [head];
       return [head, ...line.items.map((it) => itemRow(line, it)),
         h('a', { href: OPEN_LINK[line.key] || '#/active', class: 'xs', style: 'display:block;text-align:right;padding:6px 14px;background:#FAFBFA;border-top:1px solid var(--line2);color:var(--accent)' }, 'Deschide pentru acțiuni ›')];

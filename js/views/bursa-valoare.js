@@ -4,11 +4,15 @@ import { parseAmount } from '../money.js';
 import { SPACE_LABEL } from '../schema.js';
 import { closeHead, frame, guarded, loading, lei, signed, fmtNative, shortDate } from '../ui.js';
 import { INSTRUMENT_LABEL } from './bursa.js';
+import { finish } from '../return.js';
 
 const INSTR_ORDER = ['stocks_etf', 'bonds', 'cash'];
 const CURRENCIES = ['RON', 'EUR', 'USD'];
 let form = null;
 const fresh = (app) => ({ space: app.space, accountId: null, date: app.today(), entered: {}, extra: [] });
+
+// From Active: open the form on one broker account (or the first one).
+export function startValoare(app, accountId) { form = { ...fresh(app), accountId: accountId || null }; }
 
 // "Bursă · introducere" (2/2): account value on a date, one input per currency x instrument.
 // Bonds (incl. titluri de stat) are entered at investment value, so they are not typed here.
@@ -123,7 +127,7 @@ export async function bursaValoareView(app) {
           date: form.date, account_id: acc.id, currency: w.p.ccy, instrument: w.p.instr, value_minor: w.value,
         })), `valoare ${acc.institution} ${form.date}`);
         form = null;
-        app.go('/bursa');
+        finish(app, '/bursa');
       } catch (x) { e.target.disabled = false; err.textContent = 'Nu am putut salva. Încearcă din nou.'; }
     };
 
