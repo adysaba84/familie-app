@@ -44,7 +44,7 @@ export async function bursaView(app) {
         }));
 
     frame(app, {
-      tab: 'active',
+      tab: 'bursa',
       head: backHead('#/active', 'Bursă', h('span', { class: 'sm muted', style: 'padding-right:6px' }, (app.space === 'iza' ? 'Iza' : 'Părinți') + ' · valori azi')),
       body: [
         h('section', { class: 'panel' },

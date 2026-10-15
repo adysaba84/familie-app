@@ -12,7 +12,7 @@ import { startNou } from './bursa-nou.js';
 import { startValoare } from './bursa-valoare.js';
 import { startNew } from './fizice-nou.js';
 import { startValue } from './fizice.js';
-import { frame, mainHead, catNav, guarded, loading, lei, signed, latestRateText, fmtNative, fullDate, shortDate, eurOf } from '../ui.js';
+import { frame, mainHead, guarded, loading, lei, signed, latestRateText, fmtNative, fullDate, shortDate, eurOf } from '../ui.js';
 
 const SEG_COLOR = { disponibil: '#1F6F5C', vanzare: '#5FA48F', pensie: '#A9CFC2', indisponibil: '#C9A24A' };
 const CCY_COLOR = { RON: '#1F6F5C', EUR: '#4C78A8', USD: '#A9CFC2', AUR: '#C9A24A' };
@@ -157,7 +157,6 @@ export async function activeView(app) {
       tab: 'active',
       head: mainHead(app, 'Active', latestRateText(m)),
       body: [
-        catNav('active'),
         notifyBanner(app),
         h('a', { class: 'listrow', href: '#/venituri', style: 'grid-template-columns:minmax(0,1fr) 20px;background:var(--card, #fff);border-radius:12px;margin:0 16px' },
           h('span', { class: 'nm' }, h('b', {}, 'Venituri și cheltuieli'), h('span', { class: 'xs muted' }, 'pagina lunară de pe 15: soldurile, veniturile, ce s-a cheltuit')), h('span', {}, '›')),
@@ -176,6 +175,7 @@ export async function activeView(app) {
         h('section', { class: 'panel' },
           h('span', { class: 'up' }, 'Wealth 1 în timp'),
           wealthLine(series),
+          h('span', { class: 'xs muted mono', style: 'overflow-wrap:anywhere' }, series.map((p) => `${shortDate(p.date)} ${formatWhole(p.ron)}`).join(' · ')),
           h('span', { class: 'xs muted' }, `${series.length} ${series.length === 1 ? 'dată' : 'date'} cu înregistrări reale, fără interpolare; lei la cursul fiecărei date.`),
           seriesStartsBeforeDeposits(m, series)
             ? h('span', { class: 'xs neg' }, `La ${fullDate(first.date)} depozitele nu erau introduse pe rând: valoarea vine din conturi de economii sau din Excel, deci diferența până la următoarea dată arată și intrarea datelor, nu doar creștere.`) : null),

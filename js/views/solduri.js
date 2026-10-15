@@ -67,7 +67,7 @@ export async function solduriView(app) {
     };
 
     frame(app, {
-      tab: 'active', head: closeHead('#/conturi', focus ? focus.title : 'Actualizează soldurile'),
+      tab: 'conturi', head: closeHead('#/conturi', focus ? focus.title : 'Actualizează soldurile'),
       body: [
         h('label', { class: 'f', style: 'margin:14px 16px 0;font-size:12px;font-weight:600;color:var(--muted)' }, 'La data',
           h('input', { class: 'input', type: 'date', value: date, onchange: (e) => { date = e.target.value; app.rerender(); } })),

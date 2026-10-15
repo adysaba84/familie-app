@@ -88,7 +88,7 @@ export async function fiziceView(app) {
           icon('edit', 18, 1.9)) : h('span'));
 
     frame(app, {
-      tab: 'active',
+      tab: 'fizice',
       head: backHead('#/active', 'Seif', headTotal(m, total, today)),
       body: [
         ...golds.map(goldCard),

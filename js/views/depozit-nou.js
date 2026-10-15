@@ -41,7 +41,7 @@ export async function depozitNouView(app) {
     }
     if (!pairs.find((p) => p.key === form.pair)) { form.pair = pairs[0] ? pairs[0].key : null; form.bank = null; }
     const pair = pairs.find((p) => p.key === form.pair);
-    if (!pair) { frame(app, { tab: 'active', head: closeHead('#/depozite', 'Depozit nou'), body: [h('p', { class: 'muted', style: 'margin:16px' }, 'Nu există conturi de depozit. Adaugă mai întâi conturile.')] }); return; }
+    if (!pair) { frame(app, { tab: 'depozite', head: closeHead('#/depozite', 'Depozit nou'), body: [h('p', { class: 'muted', style: 'margin:16px' }, 'Nu există conturi de depozit. Adaugă mai întâi conturile.')] }); return; }
     const m = models[pair.space];
     const banks = m.accounts.filter((a) => !a.void && a.kind === 'deposit_bank' && a.owner === pair.owner && a.status !== 'closed');
     if (!banks.find((b) => b.institution === form.bank)) form.bank = banks[0].institution;
@@ -107,7 +107,7 @@ export async function depozitNouView(app) {
       h('input', { type: 'checkbox', checked: form[key], style: 'width:22px;height:22px;accent-color:var(--accent)', onchange: (e) => { form[key] = e.target.checked; update(); } }));
 
     frame(app, {
-      tab: 'active', head: closeHead('#/depozite', editing ? 'Modifică depozitul' : 'Depozit nou'),
+      tab: 'depozite', head: closeHead('#/depozite', editing ? 'Modifică depozitul' : 'Depozit nou'),
       body: [
         h('form', { class: 'form', onsubmit: (e) => e.preventDefault() },
           h('div', { class: 'grid2' },

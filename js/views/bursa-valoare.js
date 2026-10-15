@@ -28,7 +28,7 @@ export async function bursaValoareView(app) {
     const set = (patch) => { Object.assign(form, patch); app.rerender(); };
     const head = closeHead('#/bursa', 'Bursă · introducere');
     if (!acc) {
-      frame(app, { tab: 'active', head, body: [h('p', { class: 'muted', style: 'margin:16px' }, 'Nu există conturi de bursă în acest spațiu.')] });
+      frame(app, { tab: 'bursa', head, body: [h('p', { class: 'muted', style: 'margin:16px' }, 'Nu există conturi de bursă în acest spațiu.')] });
       return;
     }
 
@@ -133,7 +133,7 @@ export async function bursaValoareView(app) {
 
     const opt = (on, text, onclick) => h('button', { type: 'button', class: 'opt' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick }, text);
     frame(app, {
-      tab: 'active', head,
+      tab: 'bursa', head,
       body: [
         h('div', { class: 'seg tall', role: 'radiogroup', 'aria-label': 'Ce introduci', style: 'grid-template-columns:repeat(2,minmax(0,1fr))' },
           h('a', { role: 'radio', 'aria-checked': 'false', href: '#/bursa/nou' }, 'Sumă investită'),

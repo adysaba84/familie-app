@@ -70,7 +70,7 @@ export async function bursaNouView(app) {
     };
 
     frame(app, {
-      tab: 'active', head: closeHead('#/bursa', 'Bursă · introducere'),
+      tab: 'bursa', head: closeHead('#/bursa', 'Bursă · introducere'),
       body: [
         h('div', { class: 'seg tall', role: 'radiogroup', 'aria-label': 'Ce introduci', style: 'grid-template-columns:repeat(2,minmax(0,1fr))' },
           h('button', { role: 'radio', 'aria-checked': 'true', class: 'on' }, 'Sumă investită'),

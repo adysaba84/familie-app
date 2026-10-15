@@ -17,6 +17,10 @@ const ICONS = {
   edit: 'M4 20h4L19 9l-4-4L4 16z',
   pie: 'M12 3v9h9a9 9 0 1 1-9-9zM15 3.5A9 9 0 0 1 20.5 9H15z',
   list: 'M4 6h16M4 12h16M4 18h10',
+  bars: 'M5 20V11M12 20V4M19 20v-6M3 20h18',
+  bank: 'M3 10l9-6 9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18',
+  safe: 'M5 11h14v9H5zM8 11V8a4 4 0 0 1 8 0v3M12 15v2',
+  card: 'M3 7h18v12H3zM3 11h18M7 15h3',
   bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
 };
 
@@ -51,12 +55,16 @@ export function latestRateText(model) {
 }
 
 // ---- frame ----
+// The bottom bar: the six places of the app plus "Mai mult", one tap each. Seven fit at 375 px (about 52 px per button, icon
+// over a 10 px label), so the bar does not scroll; `active` is the key of the current screen.
+export const TABS = [
+  ['#/active', 'active', 'Active', 'trend'], ['#/bursa', 'bursa', 'Bursă', 'bars'], ['#/depozite', 'depozite', 'Depozite', 'bank'],
+  ['#/fizice', 'fizice', 'Seif', 'safe'], ['#/conturi', 'conturi', 'Conturi', 'card'], ['#/situatii', 'situatii', 'Situații', 'pie'],
+  ['#/mai-mult', 'more', 'Mai mult', 'dots'],
+];
 function tabbar(active) {
-  const item = (href, key, label, ic, extra = '') => h('a', { href, class: (active === key ? 'on ' : '') + extra }, ic, label);
   return h('nav', { class: 'tabbar', 'aria-label': 'Navigare' }, h('div', {},
-    item('#/active', 'active', 'Active', icon('trend')),
-    item('#/situatii', 'situatii', 'Situații', icon('pie')),
-    item('#/mai-mult', 'more', 'Mai mult', icon('dots'))));
+    ...TABS.map(([href, key, label, ic]) => h('a', { href, class: active === key ? 'on' : '', 'aria-current': active === key ? 'page' : null }, icon(ic, 20, 1.8), h('span', {}, label)))));
 }
 
 export function spaceChip(app) {
@@ -134,12 +142,6 @@ export async function guarded(app, render) {
       h('p', { class: 'err' }, e.message.startsWith('schema_mismatch') ? 'Foaia are alt format decât aplicația (' + e.message.split(':')[1] + ').' : 'Nu am putut citi datele. Încearcă din nou.'),
       h('button', { onclick: () => { app.rerender(); } }, 'Reîncearcă')));
   }
-}
-
-// Category chips under the Active header.
-export function catNav(active) {
-  const items = [['#/active', 'active', 'Toate'], ['#/bursa', 'bursa', 'Bursă'], ['#/depozite', 'depozite', 'Depozite'], ['#/fizice', 'fizice', 'Seif'], ['#/conturi', 'conturi', 'Conturi'], ['#/situatii', 'situatii', 'Situații']];
-  return h('nav', { class: 'chips', 'aria-label': 'Categorii' }, ...items.map(([href, key, label]) => h('a', { href, class: 'chip' + (active === key ? ' on' : '') }, label)));
 }
 
 // "în 3 zile" / "mâine" / "azi" / "scadent de N zile" for a maturity.

@@ -13,6 +13,17 @@ export function fmtK(minor, signed = true) {
 
 // Wealth 1 over the dates that have real entries: dots on a line, x proportional to the actual date (no monthly
 // buckets, no interpolation). Value labels in thousands above the dots, dates below.
+// Which points get a label: the last one always, then walking back, only those at least `minGap` (chart units) away from the
+// previously labelled one, so two labels can never overlap (points a day apart sit almost on top of each other).
+export function labelledIndexes(xs, minGap = 48) {
+  const out = new Set();
+  let lastX = null;
+  for (let i = xs.length - 1; i >= 0; i--) {
+    if (lastX == null || lastX - xs[i] >= minGap) { out.add(i); lastX = xs[i]; }
+  }
+  return out;
+}
+
 export function wealthLine(points, { width = 326, height = 124 } = {}) {
   const ms = (d) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
   const lo = Math.min(...points.map((p) => p.ron)), hi = Math.max(...points.map((p) => p.ron));
@@ -24,16 +35,16 @@ export function wealthLine(points, { width = 326, height = 124 } = {}) {
   const y = (v) => top + (1 - (v - min) / (max - min)) * (height - top - bottom);
   const kids = [svg('line', { x1: 0, y1: height - bottom + 6, x2: width, y2: height - bottom + 6, stroke: '#D5DAD6' })];
   if (points.length > 1) kids.push(svg('path', { d: 'M' + points.map((p, i) => `${x(p, i).toFixed(1)},${y(p.ron).toFixed(1)}`).join(' L'), fill: 'none', stroke: '#1F6F5C', 'stroke-width': 2.2, 'stroke-linejoin': 'round' }));
+  const xs = points.map((p, i) => x(p, i));
+  const labelled = labelledIndexes(xs);
   points.forEach((p, i) => {
-    const cx = x(p, i), last = i === points.length - 1;
+    const cx = xs[i], last = i === points.length - 1;
     kids.push(svg('circle', { cx, cy: y(p.ron), r: 4, fill: last ? '#1F6F5C' : '#FFFFFF', stroke: '#1F6F5C', 'stroke-width': 2 }));
+    if (!labelled.has(i)) return; // points that touch the next one keep their dot only; the caption lists every value
     const anchor = i === 0 && points.length > 1 ? 'start' : last && points.length > 1 ? 'end' : 'middle';
     const tx = anchor === 'start' ? cx - 6 : anchor === 'end' ? cx + 6 : cx;
-    // a point close to the previous one: value label to the right of its dot and date on a second row, so labels never overlap
-    const near = i > 0 && cx - x(points[i - 1], i - 1) < 50;
-    const nextNear = i < points.length - 1 && x(points[i + 1], i + 1) - cx < 50;
-    kids.push(svg('text', { x: near ? cx + 8 : nextNear ? cx - 6 : tx, y: near ? y(p.ron) + 3 : y(p.ron) - 8, 'text-anchor': near ? 'start' : nextNear ? 'end' : anchor, 'font-size': 9, fill: '#16201C', 'font-weight': last ? 600 : 400 }, fmtK(p.ron, false) + 'k'));
-    kids.push(svg('text', { x: tx, y: near ? height - 16 : height - 6, 'text-anchor': anchor, 'font-size': 9, fill: last ? '#16201C' : '#5B6661', 'font-weight': last ? 600 : 400 }, `${Number(p.date.slice(8, 10))} ${monthLabel(p.date)}`));
+    kids.push(svg('text', { x: tx, y: y(p.ron) - 8, 'text-anchor': anchor, 'font-size': 9, fill: '#16201C', 'font-weight': last ? 600 : 400 }, fmtK(p.ron, false) + 'k'));
+    kids.push(svg('text', { x: tx, y: height - 6, 'text-anchor': anchor, 'font-size': 9, fill: last ? '#16201C' : '#5B6661', 'font-weight': last ? 600 : 400 }, `${Number(p.date.slice(8, 10))} ${monthLabel(p.date)}`));
   });
   return svg('svg', { class: 'chart', role: 'img', viewBox: `0 0 ${width} ${height}`, 'aria-label': `Wealth 1 la ${points.length} date cu înregistrări reale` }, kids);
 }

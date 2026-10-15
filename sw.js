@@ -1,6 +1,6 @@
 // Caches the app shell only. Never touches cross-origin requests, so no Google API
 // response (i.e. no financial data) is ever stored on the device.
-const CACHE = 'fa-shell-v17';
+const CACHE = 'fa-shell-v18';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/main.js', 'js/config.js', 'js/dom.js', 'js/auth.js', 'js/picker.js', 'js/sheets.js',

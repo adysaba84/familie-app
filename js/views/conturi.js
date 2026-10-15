@@ -85,7 +85,7 @@ export async function conturiView(app) {
     }
 
     frame(app, {
-      tab: 'active',
+      tab: 'conturi',
       head: backHead('#/active', 'Conturi', headTotal(m, total, today)),
       body: [
         h('section', { class: 'panel flush' }, h('div', { class: 'ghead' }, h('span', {}, 'Conturi curente'), h('span', {}, 'sold · la data')),

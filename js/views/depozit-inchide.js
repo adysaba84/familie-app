@@ -116,7 +116,7 @@ export async function depozitInchideView(app) {
     const lbl = (t, el) => h('label', { class: 'f' }, t, el);
     const days = daysBetween(app.today(), d.maturity_date);
     frame(app, {
-      tab: 'active', head: closeHead('#/depozite', TITLE[st.mode]),
+      tab: 'depozite', head: closeHead('#/depozite', TITLE[st.mode]),
       body: [
         h('form', { class: 'form', onsubmit: (ev) => ev.preventDefault() },
           h('section', { class: 'panel', style: 'border-radius:10px;font-size:13px' },

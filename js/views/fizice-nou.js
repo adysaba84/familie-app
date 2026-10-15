@@ -45,7 +45,7 @@ export async function fiziceNouView(app) {
 
     const opt = (on, text, onclick) => h('button', { type: 'button', class: 'opt' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick }, text);
     frame(app, {
-      tab: 'active', head: closeHead('#/fizice', 'Obiect nou'),
+      tab: 'fizice', head: closeHead('#/fizice', 'Obiect nou'),
       body: [
         h('form', { class: 'form', onsubmit: (e) => e.preventDefault() },
           h('fieldset', {}, h('legend', {}, 'Ce adaugi'),

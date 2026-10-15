@@ -68,7 +68,7 @@ export async function depoziteView(app) {
     };
 
     frame(app, {
-      tab: 'active',
+      tab: 'depozite',
       head: backHead('#/active', 'Depozite', h('span', { class: 'sm muted', style: 'padding-right:6px' }, `${app.space === 'iza' ? 'Iza' : 'Părinți'} · ${rows.length} ${rows.length === 1 ? 'depozit' : 'depozite'}`)),
       body: [
         notifyBanner(app),
