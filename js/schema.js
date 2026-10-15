@@ -23,6 +23,8 @@ export const TABS = {
   // (an investment can be negative: withdrawals, sales, redemptions); label only for free-text rows (alte_surse, altele).
   cash_periods: withCommon(['id', 'date', 'prev_date', 'note']),
   cash_items: withCommon(['id', 'period_id', 'kind', 'key', 'amount_minor', 'label']),
+  // Money Iza received (a plain log, not tied to the other statistics). date may be partial (YYYY or YYYY-MM); amounts per currency.
+  gifts: withCommon(['id', 'date', 'giver', 'amount_minor', 'currency', 'reason', 'note']),
   rates: ['date', 'EUR', 'USD', 'XAU', 'source'],
   // key/value settings (private plan parameters live here, never in the public code); latest non-void row per key wins
   settings: withCommon(['key', 'value']),

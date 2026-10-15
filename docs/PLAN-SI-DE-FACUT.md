@@ -3,7 +3,7 @@
 Actualizat la 2026-10-15. Mută o linie din „De făcut” în „Gata” când se termină și actualizează `ECRANE.md` / `MODEL-DATE.md` dacă s-a schimbat comportamentul.
 
 ## Gata
-M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, depozite cu închidere și prelungire, Venituri și cheltuieli, Sume investite, ecranul lui Iza (cu educație financiară), notificări Calendar (buton .ics și evenimente puse prin conectorul Google Calendar), previzualizare cu date inventate. Datele reale sunt importate în ambele foi și validate cu Excelul vechi (M7).
+M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, depozite cu închidere și prelungire, Venituri și cheltuieli, Sume investite, ecranul lui Iza (cu educație financiară), „Primite” (jurnal de daruri, adulți și „Darurile mele” în modul copil), notificări Calendar (buton .ics și evenimente puse prin conectorul Google Calendar), previzualizare cu date inventate. Datele reale sunt importate în ambele foi și validate cu Excelul vechi (M7).
 
 ## De făcut / deschis
 1. **Cheia API din Google Cloud**: confirmă restricțiile (referreri + doar Picker). Doar utilizatorul le poate vedea (vezi `SECURITATE.md`).
@@ -16,6 +16,8 @@ M0–M6 (vezi `ISTORIC.md`), Situații cu Wealth 1/2/3, pensii/datorii/carduri, 
 8. **Textele educative din ecranul lui Iza**: revizuite doar de autor; confirmă-le (mai ales detaliile asigurării NN).
 9. **Ramuri locale** unite în `main`: de șters (`git branch -d …`).
 10. **Calendarul „Familie”** există în contul lui Ady; evenimentele de scadență au mers în calendarul principal. Dacă se vrea partajat cu Carmen, se mută sau se re-creează acolo.
+
+11. **Import „Primite”**: fișierul pregătit e în `Finante\docs\primite-kid-cont.csv` (privat). Se importă din `#/primite` → „Import din fișier”, după confirmare. De verificat după import: ortografia numelor și rândurile fără motiv.
 
 ## Reguli la reluare (pe scurt)
 - Citește `CLAUDE.md`, apoi doar documentul care atinge sarcina: `ARHITECTURA.md` (cod), `MODEL-DATE.md` (foi), `ECRANE.md` (ecrane), `OPERARE.md` (rulare, deploy, Calendar, conector), `SECURITATE.md` (reguli).

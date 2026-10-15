@@ -7,7 +7,7 @@ import { SEED } from '../js/seed.js';
 // of cells, header first, exactly as the app reads them from Sheets). Private data is read from the Sheets
 // connector by hand and is never stored in this repo.
 const TODAY = new URLSearchParams(location.search).get('today') || new Date().toISOString().slice(0, 10);
-const empty = () => ({ accounts: [], broker_flows: [], broker_values: [], deposits: [], physical_items: [], physical_values: [], balances: [], wallet_balances: [], cash_periods: [], cash_items: [], rates: [], settings: [], notify: [], notifications_log: [], audit: [] });
+const empty = () => ({ accounts: [], broker_flows: [], broker_values: [], deposits: [], physical_items: [], physical_values: [], balances: [], wallet_balances: [], cash_periods: [], cash_items: [], gifts: [], rates: [], settings: [], notify: [], notifications_log: [], audit: [] });
 const models = { parents: empty(), iza: empty() };
 let seq = 0;
 const stamp = (r) => ({ id: 'id' + ++seq, created_by: 'dev', created_at: '2026-01-01T00:00:00Z', void: false, void_reason: '', ...r });
@@ -52,6 +52,11 @@ if (new URLSearchParams(location.search).has('demo')) {
     broker_values: [stamp({ date: TODAY, account_id: 'tv', currency: 'RON', instrument: 'stocks_etf', value_minor: 800000 })],
     deposits: [stamp({ account_id: 'bank', currency: 'EUR', principal_minor: 600000, rate_bp: 200, term_months: 12, start_date: TODAY, maturity_date: '2027-10-14', status: 'active' })],
     balances: [stamp({ account_id: 'sav', date: TODAY, balance_minor: 200000, rate_bp: 450 }), stamp({ account_id: 'nn', date: TODAY, balance_minor: 3000000, rate_bp: null })],
+    // invented people and amounts
+    gifts: [['2026-10-12', 'Bunica', 20000, 'RON', 'Ziua Izei'], ['2026-06-01', 'Bunicul', 30000, 'RON', '1 iunie'], ['2025-12-24', 'Nașa', 15000, 'RON', 'Crăciun'],
+      ['2025-12-24', 'Unchiul', 5000, 'EUR', 'Crăciun'], ['2025-04-20', 'Bunicul', 10000, 'RON', 'Paște'], ['2025-03-03', 'Vecina', 2500, 'RON', 'Notă bună'],
+      ['2024-10', 'Bunica', 15000, 'RON', 'Ziua Izei'], ['2024-06', 'Nașa', 8000, 'RON', '1 iunie'], ['2023-12', 'Bunicul', 10000, 'RON', 'Crăciun']]
+      .map(([date, giver, amount_minor, currency, reason]) => stamp({ date, giver, amount_minor, currency, reason, note: '' })),
     settings: [s('birth_date', '2011-03-05'), s('contrib_nn_ron_month', 30000), s('contrib_etf_ron_month', 40000), s('contrib_savings_ron_month', 25000), s('contrib_family_eur_year', 60000)],
   });
   location.hash = '#/iza';

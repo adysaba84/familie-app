@@ -25,6 +25,7 @@ La finalul fiecărei foi de date: `created_by` (email), `created_at` (ISO UTC), 
 | `wallet_balances` | ca `balances` | singura foaie scrisă de Iza; la încărcare se îmbină cu `balances` |
 | `snapshots` | date, group, label, currency, amount_minor | totaluri copiate din Excelul vechi pentru date dinaintea înregistrărilor detaliate; se numără doar cât timp data e anterioară primei înregistrări detaliate din grup |
 | `cash_periods` / `cash_items` | pagina lunară Venituri și cheltuieli | **doar în fișierul Părinți**; `kind`: `income` sau `invested`, sume în lei cu semn |
+| `gifts` | id, date, giver, amount_minor, currency, reason, note | jurnal „Primite”: `date` poate fi parțială (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`), sumele pe valută fără conversie; `giver` include și „Părinți” (alocații, burse, Tradeville), „Randament” (dobânzi, randament) și „Aport propriu Iza” |
 | `rates` | date, EUR, USD, XAU, source | curs BNR ×10 000; la aceeași dată rândul mai nou câștigă (corecție) |
 | `settings` | key, value | parametri privați; ultimul rând ne-void pe cheie câștigă |
 | `notify`, `notifications_log` | rămase din varianta cu emailuri | nefolosite acum (notificările merg prin Calendar) |

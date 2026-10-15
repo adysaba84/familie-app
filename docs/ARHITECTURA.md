@@ -27,7 +27,7 @@ Respinse: React/Vite (cer Node), Firebase/Supabase (încă un loc cu datele), sc
 |---|---|---|
 | Boot și rute | `main.js`, `router.js`, `screens.js` | `screens.js` = tabela cale → ecran (partajată cu pagina de previzualizare) |
 | Acces la date | `auth.js`, `picker.js`, `files.js`, `sheets.js`, `store.js`, `model.js`, `app.js` | `app.js` e singurul strat pe care îl văd ecranele; testele îl înlocuiesc cu unul în memorie |
-| Calcule PURE (fără DOM, fără rețea) | `money.js`, `calc.js`, `situations.js`, `cash.js`, `iza-plan.js`, `ics.js`, `return.js` | Fiecare cifră de pe ecran vine de aici; toate sunt testate |
+| Calcule PURE (fără DOM, fără rețea) | `money.js`, `calc.js`, `situations.js`, `cash.js`, `iza-plan.js`, `ics.js`, `return.js`, `gifts.js` | Fiecare cifră de pe ecran vine de aici; toate sunt testate |
 | UI comun | `dom.js`, `ui.js`, `charts.js`, `notify.js`, `views/wealth-ui.js` | cadrul, bara de jos, formatare, grafice, butoanele de Calendar |
 | Ecrane | `views/*.js` | câte un fișier pe ecran (vezi `ECRANE.md`) |
 | Seed și schemă | `seed.js`, `schema.js`, `config.js` | conturile inițiale, foile și coloanele, cheile publice Google |

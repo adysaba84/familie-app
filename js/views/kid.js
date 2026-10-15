@@ -4,6 +4,7 @@ import { formatWhole, formatMinor, parseAmount } from '../money.js';
 import { accountBalance } from '../calc.js';
 import { fullDate } from '../ui.js';
 import { daysBetween } from '../calc.js';
+import { giftsSection } from './kid-daruri.js';
 import { pop, countUp, growOnView, plant, colorBar, boxCard, school, didYouKnow, playground } from './kid-fun.js';
 
 // Iza's screen: playful, read-only, one page. Shown to Iza when she signs in (her file is read-only for
@@ -122,6 +123,7 @@ export async function kidView(app, { asParent = false } = {}) {
           h('span', { class: 'amt' }, i === 0 ? eur(x.eur) : approx(x.eur)));
       }),
       h('p', { class: 'small' }, 'Poate ieși puțin mai mult sau puțin mai puțin: depinde de cum merge bursa și de cursul leului.')) : null,
+    giftsSection(model),
     school(plan ? plan.params.etfRateBp : 700),
     didYouKnow(),
     h('p', { class: 'small', style: 'margin:16px' }, upd ? `Situația din ${fullDate(upd)}. Cifrele pentru viitor sunt estimări, nu promisiuni.` : 'Cifrele pentru viitor sunt estimări, nu promisiuni.'),

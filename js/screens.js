@@ -16,6 +16,7 @@ import { obligatiiView } from './views/obligatii.js';
 import { maiMultView } from './views/mai-mult.js';
 import { venituriView } from './views/venituri.js';
 import { investitView } from './views/investit.js';
+import { primiteView } from './views/primite.js';
 
 // Parent-facing screens: path -> view(app). Shared by main.js and the offline preview page.
 export const SCREENS = {
@@ -37,4 +38,5 @@ export const SCREENS = {
   '/mai-mult': maiMultView,
   '/venituri': venituriView,
   '/investit': investitView,
+  '/primite': primiteView,
 };
