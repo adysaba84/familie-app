@@ -9,6 +9,7 @@ import { depozitInchideView } from './views/depozit-inchide.js';
 import { fiziceView } from './views/fizice.js';
 import { fiziceNouView } from './views/fizice-nou.js';
 import { conturiView } from './views/conturi.js';
+import { conturiAdminView } from './views/conturi-admin.js';
 import { solduriView } from './views/solduri.js';
 import { kidView } from './views/kid.js';
 import { situatiiView } from './views/situatii.js';
@@ -32,6 +33,7 @@ export const SCREENS = {
   '/fizice/nou': fiziceNouView,
   '/conturi': conturiView,
   '/conturi/solduri': solduriView,
+  '/conturi/admin': conturiAdminView,
   '/iza': (app) => kidView(app, { asParent: true }), // a parent previews Iza's screen
   '/situatii': situatiiView,
   '/curs': cursView,

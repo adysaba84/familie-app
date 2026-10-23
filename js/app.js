@@ -1,4 +1,4 @@
-import { loadModel, addRecord, addRecords, voidRecord } from './store.js';
+import { loadModel, addRecord, addRecords, voidRecord, setAccountStatus } from './store.js';
 import { SEED } from './seed.js';
 
 
@@ -23,6 +23,7 @@ export function createApp({ files, email }) {
     async add(s, tab, fields, summary, opts) { const r = await addRecord(files[s].id, tab, fields, summary, opts); delete cache[s]; return r; },
     async addMany(s, tab, list, summary) { const r = await addRecords(files[s].id, tab, list, summary); delete cache[s]; return r; },
     async void(s, tab, rec, reason) { await voidRecord(files[s].id, tab, rec, reason); delete cache[s]; },
+    async setAccountStatus(s, rec, status) { await setAccountStatus(files[s].id, rec, status); delete cache[s]; },
     async seedAccounts(s) { await app.addMany(s, 'accounts', SEED[s], 'cont inițial'); },
     // Manual BNR fallback until the Apps Script job fills the rates tab: written to every file we can edit.
     async addRate(date, rates) {

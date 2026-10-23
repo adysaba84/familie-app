@@ -70,6 +70,13 @@ export async function voidRecord(fileId, tabIn, rec, reason = '') {
   if (tab !== 'wallet_balances') await appendRows(fileId, 'audit', [auditRow('void', tab, rec.id, reason)]);
 }
 
+// Closes or reopens an account in place (its id must stay: balances and flows point at it). Audited like a void.
+export async function setAccountStatus(fileId, rec, status) {
+  const col = columnLetter(TABS.accounts.indexOf('status') + 1);
+  await updateRange(fileId, `accounts!${col}${rec._row}`, [[status]]);
+  await appendRows(fileId, 'audit', [auditRow('update', 'accounts', rec.id, `${status === 'closed' ? 'închis' : 'redeschis'} ${rec.name}`)]);
+}
+
 // Adds several records of one tab in a single request (one audit row for the whole batch).
 export async function addRecords(fileId, tab, list, summary = '') {
   const recs = list.map((fields) => ({

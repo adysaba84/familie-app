@@ -22,6 +22,7 @@ const app = {
   },
   addMany: async (s, tab, list) => list.map((f) => { const r = stamp({ ...f, _row: models[s][tab].length + 2 }); models[s][tab].push(r); return r; }),
   void: async (s, tab, rec) => { rec.void = true; },
+  setAccountStatus: async (s, rec, status) => { rec.status = status; },
   seedAccounts: async (s) => { SEED[s].forEach((a) => models[s].accounts.push(stamp({ ...a }))); },
   addRate: async (date, rates) => { for (const s of Object.keys(models)) models[s].rates.push(stamp({ date, ...rates, source: 'manual' })); },
   logout: () => {},

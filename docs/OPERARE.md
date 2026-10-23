@@ -12,7 +12,7 @@ python -m http.server 8080
 - Dacă portul e ocupat, alt port merge pentru previzualizare și teste (nu pentru autentificare).
 
 ## Teste
-Deschide `http://localhost:8080/tests/` într-un browser: rulează `tests/run.js` (suitele: money, model, calc, deposits, iza-plan, situations, charts, cash, return, calendar, ics, security; ~180 de teste). Rezumatul e în elementul `#summary` (`data-fail` = numărul de teste picate). **Rulează-le înainte de fiecare push.** Fișier de test nou → adaugă-l în lista `suites` din `tests/run.js`.
+Deschide `http://localhost:8080/tests/` într-un browser: rulează `tests/run.js` (suitele: money, model, calc, deposits, iza-plan, situations, charts, cash, return, calendar, ics, accounts-admin, security; ~180 de teste). Rezumatul e în elementul `#summary` (`data-fail` = numărul de teste picate). **Rulează-le înainte de fiecare push.** Fișier de test nou → adaugă-l în lista `suites` din `tests/run.js`.
 
 ## Verificare în panoul Browser al aplicației Claude
 - Panoul nu are service workers. Modulele pot rămâne în cache: înainte de reload rulează `fetch(url, { cache: 'reload' })` pe fișierele schimbate (lista e în `sw.js`).

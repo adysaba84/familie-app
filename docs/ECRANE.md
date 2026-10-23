@@ -18,6 +18,7 @@ Bara de jos (`ui.js`, `TABS`): **Active · Bursă · Depozite · Seif · Conturi
 | `#/iza/primit` | `kid-primit.js` | „Am primit un dar”: formularul lui Iza, pe pagină separată (de la cine, cât, valută, când, motiv, poveste scurtă; liste din foaie + „Altele…”). Butonul „➕ Am primit un dar” e în „Darurile mele”. Iza nu poate scrie `audit`, deci rândurile ei se salvează fără rând de audit (`created_by` e contul ei); părinții o văd și o pot corecta din „Primite” |
 | `#/curs` | `curs.js` | Curs BNR introdus manual (rezervă până merge scriptul) |
 | `#/iza` | `kid.js`, `kid-fun.js` | Ecranul lui Iza (și previzualizarea pentru părinți, „Modul copil”) |
+| `#/conturi/admin` | `conturi-admin.js`, `accounts-admin.js` | Administrare conturi (din „Mai mult”): adaugă un cont pe fișier (Părinți/Iza), tip, instituție, titular, monedă; lista conturilor pe tipuri cu „Închide”/„Redeschide” (schimbă `status` pe loc, cu rând în `audit`; id-ul rămâne, soldurile rămân legate). Pensiile nu se adaugă de aici (Gent/Piloni se decide după instituție în `situations.js`). |
 | `#/mai-mult` | `mai-mult.js` | Fișierele și rolul, linkuri către Sume investite, Pensii și datornici, Vezi ca Iza, Curs BNR, Alege fișierele; memento lunar „Actualizează soldurile” în Calendar |
 
 ## Straturile din Situații (`situations.js`)
